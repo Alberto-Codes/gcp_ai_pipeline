@@ -32,14 +32,17 @@ Please note that you need to have the necessary permissions to run the `setup.sh
 graph TD
     A[Start] --> B(Cloud Storage Bucket)
     B --> C[Cloud Functions or Pub/Sub]
-    C -.-> D[Trigger AI Platform or Document AI]
-    D --> E{Process PDFs}
-    E --> F[Store Results in Cloud Storage or Database]
-    F -.-> G[Expose via API Gateway or Cloud Endpoints]
-    G --> H[External API Call]
-    H --> I[End]
+    C -.-> D[Trigger Document AI for PDF Processing]
+    D --> E{Extracted Text}
+    E -->|Extracted Text| F[Vertex AI Model Garden]
+    F --> G[Model Processing: Analysis/Summary/etc.]
+    G --> H[Store Results in Cloud Storage/Database]
+    H -.-> I[Expose via API Gateway or Cloud Endpoints]
+    I --> J[External API Call]
+    J --> K[End]
 
     classDef gcp fill:#4285f4,color:#fff;
-    class B,C,D,E,F,G gcp;
+    class B,C,D,E,F,G,H,I gcp;
+
 
 ```
