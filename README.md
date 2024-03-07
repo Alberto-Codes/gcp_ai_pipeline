@@ -30,21 +30,26 @@ Please note that you need to have the necessary permissions to run the `setup.sh
 
 ```mermaid
 graph TD
-    subgraph internalFlow [Internal Processing Flow]
-        cloudStorageBucket[Cloud Storage Bucket] --> triggerStep(Cloud Functions or Pub/Sub)
-        triggerStep --> documentAIProcessing[Trigger Document AI for PDF Processing]
-        documentAIProcessing --> extractedText{Extracted Text}
-        extractedText -->|textData| vertexAIModelGarden[Vertex AI Model Garden]
-        vertexAIModelGarden --> modelProcessing[Model Processing: Analysis/Summary/etc.]
-        modelProcessing --> storeResults[Store Results in Cloud Storage or Database]
-    end
+    subgraph title [High-Level Workflow: AI-powered Sustainability Analysis on PDFs]
+        subgraph internalFlow [Internal Processing Flow]
+            cloudStorageBucket[Cloud Storage Bucket] --> triggerStep(Cloud Functions or Pub/Sub)
+            triggerStep --> pdfPreprocessing["PDF Preprocessing (Cleaning/Formatting/OCR)"]
+            pdfPreprocessing --> entityRecognition["Entity Recognition (Sustainability Keywords)"]
+            entityRecognition & pdfPreprocessing --> sentimentAnalysis[Sentiment Analysis]
+            sentimentAnalysis & entityRecognition & pdfPreprocessing --> validateData(Data Validation)
+            validateData --> modelProcessing["Sustainability Classification & Impact Assessment"]
+            modelProcessing --> classifySustainability["Classify Sustainability Category (Optional)"]
+            modelProcessing --> predictImpact["Predict Sustainability Impact (Optional)"]
+            classifySustainability & predictImpact --> storeResults[Store Results in Cloud Storage or Database]
+        end
 
-    subgraph externalFlow [External API Flow]
-        storeResults --> exposeAPI[Expose via API Gateway or Cloud Endpoints]
-        exposeAPI --> externalAPICall[External API Call]
-        externalAPICall --> endPoint[End]
+        subgraph externalFlow [External API Flow]
+            storeResults --> exposeAPI[Expose via API Gateway or Cloud Endpoints]
+            exposeAPI --> benchmarkAPI[Call Benchmarking API]
+            benchmarkAPI --> endPoint[End]
+        end
     end
 
     classDef gcp fill:#4285f4,color:#fff;
-    class cloudStorageBucket,triggerStep,documentAIProcessing,extractedText,vertexAIModelGarden,modelProcessing,storeResults,exposeAPI gcp;
+    class cloudStorageBucket,triggerStep,pdfPreprocessing,entityRecognition,sentimentAnalysis,modelProcessing,storeResults,exposeAPI,benchmarkAPI,validateData,classifySustainability,predictImpact gcp;
 ```
