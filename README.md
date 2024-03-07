@@ -27,3 +27,19 @@ To run the `setup.sh` script:
 3. The script will echo "Environment setup completed successfully." when it finishes running.
 
 Please note that you need to have the necessary permissions to run the `setup.sh` script and to perform the operations it contains.
+
+```mermaid
+graph TD
+    A[Start] --> B(Cloud Storage Bucket)
+    B --> C[Cloud Functions or Pub/Sub]
+    C -.-> D[Trigger AI Platform or Document AI]
+    D --> E{Process PDFs}
+    E --> F[Store Results in Cloud Storage or Database]
+    F -.-> G[Expose via API Gateway or Cloud Endpoints]
+    G --> H[External API Call]
+    H --> I[End]
+
+    classDef gcp fill:#4285f4,color:#fff;
+    class B,C,D,E,F,G gcp;
+
+```
