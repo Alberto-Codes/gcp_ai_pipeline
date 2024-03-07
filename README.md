@@ -30,19 +30,21 @@ Please note that you need to have the necessary permissions to run the `setup.sh
 
 ```mermaid
 graph TD
-    A[Start] --> B(Cloud Storage Bucket)
-    B --> C[Cloud Functions or Pub/Sub]
-    C -.-> D[Trigger Document AI for PDF Processing]
-    D --> E{Extracted Text}
-    E -->|Extracted Text| F[Vertex AI Model Garden]
-    F --> G[Model Processing: Analysis/Summary/etc.]
-    G --> H[Store Results in Cloud Storage/Database]
-    H -.-> I[Expose via API Gateway or Cloud Endpoints]
-    I --> J[External API Call]
-    J --> K[End]
+    subgraph internalFlow [Internal Processing Flow]
+        cloudStorageBucket[Cloud Storage Bucket] --> triggerStep(Cloud Functions or Pub/Sub)
+        triggerStep --> documentAIProcessing[Trigger Document AI for PDF Processing]
+        documentAIProcessing --> extractedText{Extracted Text}
+        extractedText -->|textData| vertexAIModelGarden[Vertex AI Model Garden]
+        vertexAIModelGarden --> modelProcessing[Model Processing: Analysis/Summary/etc.]
+        modelProcessing --> storeResults[Store Results in Cloud Storage or Database]
+    end
+
+    subgraph externalFlow [External API Flow]
+        storeResults --> exposeAPI[Expose via API Gateway or Cloud Endpoints]
+        exposeAPI --> externalAPICall[External API Call]
+        externalAPICall --> endPoint[End]
+    end
 
     classDef gcp fill:#4285f4,color:#fff;
-    class B,C,D,E,F,G,H,I gcp;
-
-
+    class cloudStorageBucket,triggerStep,documentAIProcessing,extractedText,vertexAIModelGarden,modelProcessing,storeResults,exposeAPI gcp;
 ```
