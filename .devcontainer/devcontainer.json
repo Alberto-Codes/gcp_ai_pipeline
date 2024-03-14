@@ -17,19 +17,24 @@
 				"ms-python.black-formatter",
 				"ms-python.isort",
 				"ms-python.vscode-pylance",
-				"ms-python.python"
+				"ms-python.python",
+				"googlecloudtools.cloudcode",
+				"GitHub.copilot-chat",
+				"GitHub.copilot",
+				"github.vscode-github-actions"
 			]
 		}
-	}
+	},
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
+	"forwardPorts": [8501, 5678],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "pip3 install --user -r requirements.txt",
+	"postCreateCommand": "pip3 install --user -r requirements.txt"
 
 	// Configure tool-specific properties.
 	// "customizations": {},
