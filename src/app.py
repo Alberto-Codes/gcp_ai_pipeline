@@ -36,8 +36,6 @@ def main():
 
     st.title('Company Name Input')
     company_name = st.text_input('Enter the company name')
-    pdf_urls_input = st.text_area('Enter the PDF URLs (one per line)')
-    pdf_urls = pdf_urls_input.split('\n')  # Split the input into a list of URLs
     if st.button('Submit'):
         pdf_urls = search_pdfs(company_name, api_key, search_engine_id)
         handle_input(company_name, pdf_urls)
