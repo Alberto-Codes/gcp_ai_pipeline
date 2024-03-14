@@ -1,84 +1,115 @@
 # ESG Survey Reporting API Documentation
 
-This document outlines the specifications of the ESG Survey Reporting API, structured according to the OpenAPI 3.0.0 standard. This API facilitates uploading documents for ESG benchmarking, fetching specific ESG indicators, checking service status, and generating PDF reports for given entities.
+This document provides detailed specifications for the ESG Survey Reporting API, adhering to the OpenAPI 3.0.0 specification. The API is designed to support operations related to Environmental, Social, and Governance (ESG) benchmarking, including document uploads, ESG indicator retrieval, service status checks, and PDF report generation for specified entities.
 
 ## Overview
 
 - **OpenAPI Version**: 3.0.0
 - **Title**: ESG Survey Reporting
-- **Description**: API for uploading, generating reports for ESG Benchmarking
+- **Description**: A comprehensive API for uploading documents, generating reports, and retrieving ESG benchmarking data.
 - **Version**: 1.0.0
 - **Base URL**: `http://localhost:8080/api`
 
-## Endpoints
+## API Endpoints
 
 ### Upload ESG Document
 
-- **Path**: `/esg/benchmark/upload/{entityName}`
+- **Endpoint**: `/esg/benchmark/upload/{entityName}`
 - **Method**: POST
-- **Summary**: Uploads an ESG document for a given entity and retrieves all ESG benchmark documents.
+- **Description**: Upload an ESG document for a specific entity and retrieve related ESG benchmark documents.
 - **Parameters**:
-  - `entityName` (path): The name of the entity for which the document is uploaded.
+  - `entityName` (path): The name of the entity.
 - **Request Body**:
-  - `documentUpload`: The binary content of the document to upload.
-- **Response**:
-  - `200`: Document uploaded successfully, returning an array of ESG responses.
+  - `documentUpload`: Binary content of the document.
+- **Responses**:
+  - `200 OK`: Document uploaded successfully.
 
 ### Fetch Specific ESG Indicator
 
-- **Path**: `/esg/benchmark/upload/{entityName}/{esgType}/{esgIndicator}`
+- **Endpoint**: `/esg/benchmark/upload/{entityName}/{esgType}/{esgIndicator}`
 - **Method**: POST
-- **Summary**: Fetches a specific ESG indicator for a given entity.
+- **Description**: Retrieve a specific ESG indicator for a given entity.
 - **Parameters**:
-  - `entityName` (path): Name of the entity.
-  - `esgType` (path): Type of the ESG.
-  - `esgIndicator` (path): Specific ESG indicator to fetch.
-  - `question` (query, optional): Number of items to skip before starting to collect the result set.
+  - `entityName`, `esgType`, `esgIndicator` (path): Identifiers for the entity and ESG indicators.
+  - `question` (query, optional): Filter parameter.
 - **Request Body**:
-  - `documentUpload`: The binary content of the document to upload.
-- **Response**:
-  - `200`: Successfully fetched the ESG indicator for the given entity.
+  - `documentUpload`: Binary content of the document.
+- **Responses**:
+  - `200 OK`: ESG indicator retrieved successfully.
 
 ### Service Keepalive
 
-- **Path**: `/esg/benchmark/keepalive`
+- **Endpoint**: `/esg/benchmark/keepalive`
 - **Method**: GET
-- **Summary**: Checks the status of the benchmarking service.
-- **Response**:
-  - `200`: Service is up and running.
+- **Description**: Check the operational status of the benchmarking service.
+- **Responses**:
+  - `200 OK`: Service is operational.
 
 ### Generate PDF Report
 
-- **Path**: `/esg/benchmark/pdf-report/{entityName}`
+- **Endpoint**: `/esg/benchmark/pdf-report/{entityName}`
 - **Method**: POST
-- **Summary**: Generates a PDF report for a given entity.
+- **Description**: Generate a PDF report for a specified entity.
 - **Parameters**:
-  - `entityName` (path): Name of the entity for which to generate the report.
+  - `entityName` (path): The name of the entity.
 - **Request Body**:
-  - `documentUpload`: The binary content of the document to upload.
-- **Response**:
-  - `200`: PDF report generated successfully.
+  - `documentUpload`: Binary content of the document.
+- **Responses**:
+  - `200 OK`: PDF report generated successfully.
 
-## Components
+## Additional Endpoints
 
-### Schemas
+### Upload Document
 
-#### MetaData
+- **Endpoint**: `/documents`
+- **Method**: POST
+- **Description**: Upload a document for ESG benchmarking.
+- **Parameters**:
+  - `document`: The document file to upload.
+- **Responses**:
+  - `200 OK`: Document uploaded successfully.
+  - `400 Bad Request`: Invalid request format.
 
-Defines the structure for metadata associated with an ESG benchmarking effort, including questions, ESG types (ESGScore, Environment, Social, Reporting), indicators, and details related to citations and pages.
+### Retrieve ESG Indicators
 
-#### Metrics
+- **Endpoint**: `/indicators`
+- **Method**: GET
+- **Description**: Retrieve ESG indicators for a specified document.
+- **Parameters**:
+  - `documentId`: ID of the document.
+- **Responses**:
+  - `200 OK`: ESG indicators retrieved successfully.
+  - `404 Not Found`: Document not found.
 
-Details the metrics used to evaluate the benchmarking process, such as time taken, the model leveraged, and the F1 score.
+### Generate Report
 
-#### ResponseInternalDetails
+- **Endpoint**: `/reports`
+- **Method**: POST
+- **Description**: Generate a report based on ESG indicators for a specified document.
+- **Parameters**:
+  - `documentId`: ID of the document.
+- **Responses**:
+  - `200 OK`: Report generated successfully.
+  - `404 Not Found`: Document not found.
 
-Outlines the response structure for an uploaded document, including the entity name, benchmark details (as an array of `MetaData`), and metrics.
+## Schemas
 
-#### ResponseInternalDetailsScalar
+### MetaData
 
-Similar to `ResponseInternalDetails`, but tailored for fetching specific ESG indicators, providing benchmark details in a scalar format.
+Defines the structure for metadata associated with ESG benchmarking, including questions, types, indicators, and citation details.
+
+### Metrics
+
+Outlines the metrics used to evaluate the benchmarking process, including time taken and model accuracy metrics like F1 score.
+
+### ResponseInternalDetails
+
+Describes the response format for document uploads, including entity name, benchmark details, and metrics.
+
+### ResponseInternalDetailsScalar
+
+Provides a detailed format for fetching specific ESG indicators, including questions, types, and detailed benchmarking results.
 
 ## Conclusion
 
-This API provides a comprehensive toolset for ESG benchmarking, including uploading documents, retrieving ESG indicators, and generating reports. It's designed to facilitate the integration of ESG benchmarking capabilities into broader systems or platforms.
+This API serves as a vital tool for ESG benchmarking, facilitating document management, indicator retrieval, and report generation to support environmental, social, and governance initiatives.
