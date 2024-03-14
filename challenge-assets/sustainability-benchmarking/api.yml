@@ -1,0 +1,224 @@
+openapi: 3.0.0
+info:
+  title: ESG Survey Reporting
+  description: API for uploading, generation report for ESG Benchmarking
+  version: "1.0.0"
+servers:
+  - url: http://localhost:8080/api
+paths:
+  /esg/benchmark/upload/{entityName}:
+    post:
+      summary: Upload ESG for given entity and retrieve all ESG benchmark document
+      parameters:
+        - in: path
+          name: entityName
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                documentUpload:
+                  type: string
+                  format: binary
+              required:
+                - entityName
+                - documentUpload
+
+      responses:
+        '200':
+          description: Document Uploaded Successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  esgResponse:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ResponseInternalDetails'
+
+  /esg/benchmark/upload/{entityName}/{esgType}/{esgIndicator}:
+    post:
+      summary: Fetch specific ESG indicator for given entity
+      parameters:
+        - in: path
+          name: entityName
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: question
+          schema:
+            type: string
+          description: The number of items to skip before starting to collect the result set   
+        - in: path
+          name: esgType
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: esgIndicator
+          required: true
+          schema:
+            type: string    
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                documentUpload:
+                  type: string
+                  format: binary
+              required:
+                - entityName
+                - documentUpload
+                - esgType
+                - esgIndicator
+      responses:
+        '200':
+          description: Fetch esg indicator for given entity
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  esgResponse:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ResponseInternalDetailsScalar'
+
+  
+  /esg/benchmark/keepalive:
+    get:
+      summary: Find status of the benchakring service
+      responses:
+        '200':
+          description: Document Generated Successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+                    
+  /esg/benchmark/pdf-report/{entityName}:
+    post:
+      summary: get PDF URL for given entity name
+      parameters:
+        - in: path
+          name: entityName
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                documentUpload:
+                  type: string
+                  format: binary
+              required:
+                - entityName
+                - documentUpload
+      responses:
+        '200':
+          description: Document Generated Successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pdfUrlPath:
+                    type: string                 
+components:
+  schemas:
+    MetaData:
+      type: object
+      properties:
+        question:
+          type: string
+        esgType:
+          type: string
+          enum: [ESGScore, Environment, Social, Reporting]
+        esgIndicators:
+          type: string
+        primaryDetails:
+          type: string
+        secondaryDetails:
+          type: string
+        citationDetails:
+          type: string
+        pageNumber:
+          type: integer
+    Metrics:
+      type: object
+      properties:
+        timeTaken:
+          type: integer
+        leveragedModel:
+          type: string
+    ResponseInternalDetails:
+      type: object
+      properties:
+        entityName:
+          type: string
+        benchmarkDetails:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetaData'
+        metrics:
+          type: object
+          properties:
+            timeTaken:
+              type: integer
+            leveragedModel:
+              type: string
+            f1Score:
+              type: integer
+    ResponseInternalDetailsScalar:
+      type: object
+      properties:
+        entityName:
+          type: string
+        benchmarkDetails:
+          type: object
+          properties:
+            question:
+              type: string
+            esgType:
+              type: string
+              enum: [ESGScore, Environment, Social, Reporting]
+            esgIndicators:
+              type: string
+            primaryDetails:
+              type: string
+            secondaryDetails:
+              type: string
+            citationDetails:
+              type: string
+            pageNumber:
+              type: integer
+        Metrics:
+          type: object
+          properties:
+            timeTaken:
+              type: integer
+            leveragedModel:
+              type: string
+            f1Score:
+              type: integer
+            
+              
