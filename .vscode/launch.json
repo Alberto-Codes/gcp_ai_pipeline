@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Streamlit",
+            "type": "python",
+            "request": "launch",
+            "module": "streamlit",
+            "args": [
+                "run",
+                "src/app.py",
+                "--server.enableCORS",
+                "false",
+                "--server.enableXsrfProtection",
+                "false"
+            ]
+        }
+    ]
+}
