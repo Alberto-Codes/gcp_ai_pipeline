@@ -1,6 +1,6 @@
 ## Using Codespaces
 
-Codespaces provides a complete, configurable dev environment on top of a powerful VM in minutes. This allows you to work on your project from anywhere, without having to clone or sync your project locally.
+Codespaces provides a complete, configurable dev environment on top of a powerful VM in minutes. This allows you to work on your project from anywhere, without having to clone or sync your project from local.
 
 To use Codespaces:
 
