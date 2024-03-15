@@ -5,6 +5,40 @@ from google.cloud import storage
 import uuid  # Import UUID library
 import time
 import requests
+from PyPDF2 import PdfReader, PdfWriter
+
+def split_and_move_pdfs(source_bucket_name, dest_bucket_name, source_dir, dest_dir):
+    storage_client = storage.Client(project=os.getenv("PROJECT_ID"))
+
+    source_bucket = storage_client.get_bucket(source_bucket_name)
+    dest_bucket = storage_client.get_bucket(dest_bucket_name)
+
+    blobs = source_bucket.list_blobs(prefix=source_dir)
+
+    for blob in blobs:
+        # Download the blob to a temporary file
+        blob.download_to_filename('/tmp/temp.pdf')
+
+        # Split the PDF into smaller PDFs if necessary
+        with open('/tmp/temp.pdf', 'rb') as fileobj:
+            reader = PdfReader(fileobj)
+            num_pages = len(reader.pages)
+
+            for i in range(0, num_pages, 15):
+                writer = PdfWriter()
+                for j in range(i, min(i + 15, num_pages)):
+                    writer.add_page(reader.pages[j])
+
+                # Save the smaller PDF to a temporary file
+                with open(f'/tmp/temp_{i}.pdf', 'wb') as output_pdf:
+                    writer.write(output_pdf)
+
+                # Upload the smaller PDF to the destination directory
+                new_blob = dest_bucket.blob(f'{dest_dir}{blob.name}_{i}.pdf')
+                new_blob.upload_from_filename(f'/tmp/temp_{i}.pdf', content_type='application/pdf')
+
+        # Delete the original blob
+        blob.delete()
 
 def search_pdfs(company_name, api_key, search_engine_id):
     search_url = "https://www.googleapis.com/customsearch/v1"
@@ -26,7 +60,7 @@ def search_pdfs(company_name, api_key, search_engine_id):
 def handle_input(company_name, pdf_urls, user_id):
     st.write(f'Company Name: {company_name}')
     storage_client = storage.Client(project=os.getenv("PROJECT_ID"))
-    bucket_name = os.getenv("BUCKET_NAME")
+    bucket_name = os.getenv("PDF_BUCKET_NAME")
     bucket = storage_client.get_bucket(bucket_name)
 
     directory_name = f"{company_name}_{user_id}/"
@@ -70,6 +104,12 @@ def main():
     if st.button('Submit'):
         pdf_urls = search_pdfs(company_name, api_key, search_engine_id)
         handle_input(company_name, pdf_urls, st.session_state.user_id)
-
+        # Call the split_and_move_pdfs function
+        split_and_move_pdfs(
+            os.getenv("PDF_BUCKET_NAME"), 
+            os.getenv("SPLIT_PDF_BUCKET_NAME"), 
+            f"{company_name}_{st.session_state.user_id}/", 
+            f"{company_name}_{st.session_state.user_id}/"
+)
 if __name__ == "__main__":
     main()
