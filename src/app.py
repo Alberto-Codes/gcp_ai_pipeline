@@ -34,7 +34,8 @@ def split_and_move_pdfs(source_bucket_name, dest_bucket_name, source_dir, dest_d
                     writer.write(output_pdf)
 
                 # Upload the smaller PDF to the destination directory
-                new_blob = dest_bucket.blob(f'{dest_dir}{blob.name}_{i}.pdf')
+                # new_blob = dest_bucket.blob(f'{dest_dir}{blob.name}_{i}.pdf')
+                new_blob = dest_bucket.blob(f'{blob.name}_{i}.pdf')
                 new_blob.upload_from_filename(f'/tmp/temp_{i}.pdf', content_type='application/pdf')
 
         # Delete the original blob
