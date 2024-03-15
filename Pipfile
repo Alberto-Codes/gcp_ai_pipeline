@@ -56,8 +56,12 @@ tzdata = "==2024.1"
 urllib3 = "==2.2.1"
 watchdog = "==4.0.0"
 pypdf2 = "*"
+google-cloud-documentai = "*"
+google-cloud-documentai-toolbox = "*"
 
 [dev-packages]
+black = "*"
+isort = "*"
 
 [requires]
 python_version = "3.12"
