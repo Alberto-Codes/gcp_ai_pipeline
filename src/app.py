@@ -44,7 +44,7 @@ def split_and_move_pdfs(source_bucket_name, dest_bucket_name, source_dir, dest_d
                 )
 
         # Delete the original blob
-        blob.delete()
+        # blob.delete()
 
 
 def search_pdfs(company_name, api_key, search_engine_id):
