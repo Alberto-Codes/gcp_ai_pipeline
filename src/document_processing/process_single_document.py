@@ -74,5 +74,5 @@ def process_single_document(
     document = result.document
 
     # Read the text recognition output from the processor
-    print("The document contains the following text:")
-    print(document.text)
+    # print("The document contains the following text:")
+    # print(document.text)
