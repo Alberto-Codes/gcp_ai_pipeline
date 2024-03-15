@@ -8,10 +8,12 @@ import requests
 
 def search_pdfs(company_name, api_key, search_engine_id):
     search_url = "https://www.googleapis.com/customsearch/v1"
+    # Include 'ESG' and 'environmental social governance' in the query
+    query = f"{company_name} ESG OR environmental social governance filetype:pdf"
     params = {
         'key': api_key,
         'cx': search_engine_id,
-        'q': f"{company_name} filetype:pdf",
+        'q': query,
         'num': 10  # Number of search results to return
     }
     response = requests.get(search_url, params=params)
