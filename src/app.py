@@ -132,7 +132,7 @@ def main():
         project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
         processor_id = os.getenv("DOCUMENT_AI_PROCESSOR_ID")
         json_bucket = os.getenv("JSON_BUCKET_NAME")
-        split_pdf_bucket = os.getenv("SPLIT_PDF_BUCKET_NAME")
+        split_pdf_bucket = os.getenv("PDF_BUCKET_NAME")
         directory = f"{company_name}_{st.session_state.user_id}"
         gcs_output_uri = f"gs://{json_bucket}/{directory}/"
         gcs_input_prefix = f"gs://{split_pdf_bucket}/{directory}/"
