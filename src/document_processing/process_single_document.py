@@ -1,13 +1,15 @@
+import os
 from typing import Optional
 
 from google.api_core.client_options import ClientOptions
 from google.cloud import documentai  # type: ignore
-import os
 
 # TODO(developer): Uncomment these variables before running the sample.
 project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
-location = "us" # Format is "us" or "eu"
-processor_id = os.getenv("DOCUMENT_AI_PROCESSOR_ID")# Create processor before running sample
+location = "us"  # Format is "us" or "eu"
+processor_id = os.getenv(
+    "DOCUMENT_AI_PROCESSOR_ID"
+)  # Create processor before running sample
 # file_path = "/path/to/local/pdf"
 # mime_type = "application/pdf" # Refer to https://cloud.google.com/document-ai/docs/file-types for supported file types
 # field_mask = "text,entities,pages.pageNumber"  # Optional. The fields to return in the Document object.
@@ -16,6 +18,7 @@ processor_id = os.getenv("DOCUMENT_AI_PROCESSOR_ID")# Create processor before ru
 
 
 from google.cloud import storage
+
 
 def process_single_document(
     bucket_name: str,

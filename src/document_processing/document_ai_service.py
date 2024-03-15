@@ -2,8 +2,7 @@ import re
 from typing import Optional
 
 from google.api_core.client_options import ClientOptions
-from google.api_core.exceptions import InternalServerError
-from google.api_core.exceptions import RetryError
+from google.api_core.exceptions import InternalServerError, RetryError
 from google.cloud import documentai  # type: ignore
 from google.cloud import storage
 
