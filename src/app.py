@@ -7,6 +7,8 @@ import streamlit as st
 from google.cloud import storage
 from PyPDF2 import PdfReader, PdfWriter
 
+from document_processing.document_ai_service import batch_process_documents
+
 
 def split_and_move_pdfs(source_bucket_name, dest_bucket_name, source_dir, dest_dir):
     storage_client = storage.Client(project=os.getenv("PROJECT_ID"))
@@ -53,7 +55,7 @@ def search_pdfs(company_name, api_key, search_engine_id):
         "key": api_key,
         "cx": search_engine_id,
         "q": query,
-        "num": 10,  # Number of search results to return
+        "num": 3,  # Number of search results to return
     }
     response = requests.get(search_url, params=params)
     response.raise_for_status()
@@ -127,7 +129,20 @@ def main():
             f"{company_name}_{st.session_state.user_id}/",
             f"{company_name}_{st.session_state.user_id}/",
         )
-        
+        project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+        processor_id = os.getenv("DOCUMENT_AI_PROCESSOR_ID")
+        json_bucket = os.getenv("JSON_BUCKET_NAME")
+        split_pdf_bucket = os.getenv("SPLIT_PDF_BUCKET_NAME")
+        directory = f"{company_name}_{st.session_state.user_id}"
+        gcs_output_uri = f"gs://{json_bucket}/{directory}/"
+        gcs_input_prefix = f"gs://{split_pdf_bucket}/{directory}/"
+        batch_process_documents(
+            project_id=project_id,
+            location="us",
+            processor_id=processor_id,
+            gcs_output_uri=gcs_output_uri,
+            gcs_input_prefix=gcs_input_prefix,
+        )
 
 
 if __name__ == "__main__":
