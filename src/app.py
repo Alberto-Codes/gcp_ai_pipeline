@@ -116,9 +116,11 @@ def split_and_move_pdfs(
 
     for blob in blobs:
         download_blob(blob, "/tmp/temp.pdf")
+        blob_name, _ = os.path.splitext(blob.name)
 
         for i, temp_file in enumerate(split_pdf("/tmp/temp.pdf")):
-            split_blob_name = f"{blob.name}_{i}.pdf"
+            # split_blob_name = f"{blob.name}_{i}.pdf"
+            split_blob_name = f"{blob_name}_{i}.pdf"
             upload_blob(dest_bucket, split_blob_name, temp_file)
             # time.sleep(5)
             # process_single_document(
