@@ -4,29 +4,24 @@ import uuid
 
 import requests
 import streamlit as st
+import streamlit.components.v1 as components
 from google.cloud import storage
 from PyPDF2 import PdfReader, PdfWriter
 
 from document_processing.datastore_refresh import import_documents_sample
-from gcp_integration.search_convo import search_sample
 from esg_score_fetch.sasb_fetch import fetch_sasb_pdf_links
-import streamlit.components.v1 as components
-
-import os
-import uuid
-import requests
-import streamlit as st
-import streamlit.components.v1 as components
+from gcp_integration.search_convo import search_sample
 
 # Update these URLs to point to your Flask routes
 FLASK_BACKEND_SEARCH_URL = "http://localhost:5000/search_pdfs"
 FLASK_BACKEND_HANDLE_URL = "http://localhost:5000/handle_input"
 
+
 def fetch_pdf_urls(company_name, api_key, search_engine_id):
     params = {
         "company_name": company_name,
         "api_key": api_key,
-        "search_engine_id": search_engine_id
+        "search_engine_id": search_engine_id,
     }
     response = requests.get(FLASK_BACKEND_SEARCH_URL, params=params)
     if response.status_code == 200:
@@ -34,31 +29,31 @@ def fetch_pdf_urls(company_name, api_key, search_engine_id):
     else:
         st.error(f"Failed to fetch PDF URLs: {response.text}")
         return []
+
+
 def upload_pdf_urls(pdf_urls):
-    data = {
-        "pdf_urls": pdf_urls
-    }
+    data = {"pdf_urls": pdf_urls}
     response = requests.post(FLASK_BACKEND_HANDLE_URL, json=data)
     if response.status_code == 200:
         result = response.json()
-        if result['uploaded']:
-            uploaded_files = '<br>'.join(result['uploaded'])  # Join list items with line breaks for HTML
+        if result["uploaded"]:
+            uploaded_files = "<br>".join(
+                result["uploaded"]
+            )  # Join list items with line breaks for HTML
             st.markdown(f"Uploaded files:<br>{uploaded_files}", unsafe_allow_html=True)
-        if result['already_exists']:
-            existing_files = '<br>'.join(result['already_exists'])
-            st.markdown(f"Files already exist:<br>{existing_files}", unsafe_allow_html=True)
-        if result['failed']:
-            failed_files = '<br>'.join(result['failed'])
+        if result["already_exists"]:
+            existing_files = "<br>".join(result["already_exists"])
+            st.markdown(
+                f"Files already exist:<br>{existing_files}", unsafe_allow_html=True
+            )
+        if result["failed"]:
+            failed_files = "<br>".join(result["failed"])
             st.markdown(f"Failed files:<br>{failed_files}", unsafe_allow_html=True)
     else:
         st.error("Failed to process PDF URLs.")
 
 
-
-
 def main():
-
-
 
     col1, col2 = st.columns(2)
     with col1:
@@ -74,8 +69,6 @@ def main():
 
         st.title("Company Name Input")
         company_name = st.text_input("Enter the company name")
-
-
 
         if st.button("Fetch PDFs"):
             pdf_urls = fetch_pdf_urls(company_name, api_key, search_engine_id)
@@ -149,14 +142,13 @@ def main():
                     snippet_text = snippet.get("snippet")
                     st.markdown(f"**Snippet:** {snippet_text}", unsafe_allow_html=True)
 
-        
     with col2:
-        
+
         st.title("Chat with the AI Agent")
-        chat_agent_id = os.getenv('CHAT_AGENT_ID')
+        chat_agent_id = os.getenv("CHAT_AGENT_ID")
         project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
         components.html(
-                f"""
+            f"""
                 <link rel="stylesheet" href="https://www.gstatic.com/dialogflow-console/fast/df-messenger/prod/v1/themes/df-messenger-default.css">
                 <script src="https://www.gstatic.com/dialogflow-console/fast/df-messenger/prod/v1/df-messenger.js"></script>
                 <df-messenger
@@ -179,13 +171,12 @@ def main():
                     }}
                 </style>
                 """,
-                height=600
+            height=600,
         )
 
         # More of your Streamlit app code goes here
 
         # More of your Streamlit app code goes here
-
 
 
 if __name__ == "__main__":
