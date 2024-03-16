@@ -60,6 +60,7 @@ google-cloud-documentai = "*"
 google-cloud-documentai-toolbox = "*"
 google-cloud-aiplatform = "*"
 google-cloud-discoveryengine = "*"
+beautifulsoup4 = "*"
 
 [dev-packages]
 black = "*"

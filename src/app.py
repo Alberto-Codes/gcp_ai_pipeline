@@ -1,6 +1,6 @@
 import os
 import time
-import uuid  # Import UUID library
+import uuid
 
 import requests
 import streamlit as st
@@ -8,8 +8,8 @@ from google.cloud import storage
 from PyPDF2 import PdfReader, PdfWriter
 
 from document_processing.datastore_refresh import import_documents_sample
-from document_processing.document_ai_service import batch_process_documents
 from gcp_integration.search_convo import search_sample
+from esg_score_fetch.sasb_fetch import fetch_sasb_pdf_links
 
 
 def search_pdfs(company_name, api_key, search_engine_id):
@@ -22,7 +22,7 @@ def search_pdfs(company_name, api_key, search_engine_id):
         "q": query,
         "num": 5,  # Number of search results to return
     }
-    response = requests.get(search_url, params=params)
+    response = requests.get(search_url, params=params, timeout=5)
     response.raise_for_status()
     search_results = response.json()
     pdf_urls = [
@@ -33,83 +33,78 @@ def search_pdfs(company_name, api_key, search_engine_id):
     return pdf_urls
 
 
-def handle_input(company_name, pdf_urls, user_id):
+def handle_input(company_name, pdf_urls):
     st.write(f"Company Name: {company_name}")
     storage_client = storage.Client(project=os.getenv("GOOGLE_CLOUD_PROJECT"))
     bucket_name = os.getenv("PDF_BUCKET_NAME")
     bucket = storage_client.get_bucket(bucket_name)
 
-    directory_name = f"{company_name}_{user_id}/"
+    # directory_name = f"{company_name}_{user_id}/"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
     }
 
     for pdf_url in pdf_urls:
-        success = False
-        retries = 3  # Max retries
-        for attempt in range(retries):
-            try:
-                response = requests.get(
-                    pdf_url, headers=headers, timeout=10
-                )  # Added timeout
-                response.raise_for_status()
-                # If request is successful, break out of the retry loop
-                success = True
-                break
-            except (
-                requests.exceptions.ConnectionError,
-                requests.exceptions.HTTPError,
-            ) as e:
-                st.error(f"Attempt {attempt + 1} failed: {e}")
-                time.sleep(2**attempt)  # Exponential backoff
-        if not success:
-            st.error(f"Failed to download {pdf_url} after {retries} attempts.")
-            continue
-
         file_name = pdf_url.split("/")[-1]
-        blob = bucket.blob(directory_name + file_name)
-        blob.upload_from_string(response.content, content_type="application/pdf")
-        st.write(f"Uploaded {file_name} to {directory_name}")
+        blob = bucket.blob(file_name)
+        if not blob.exists():
+            # If the file does not exist, download it
+            success = False
+            retries = 2  # Max retries
+            for attempt in range(retries):
+                try:
+                    response = requests.get(
+                        pdf_url, headers=headers, timeout=5
+                    )  # Added timeout
+                    response.raise_for_status()
+                    # If request is successful, break out of the retry loop
+                    success = True
+                    break
+                except (
+                    requests.exceptions.ConnectionError,
+                    requests.exceptions.HTTPError,
+                    requests.exceptions.Timeout,
+                ) as e:
+                    st.error(f"Attempt {attempt + 1} failed: {e}")
+                    time.sleep(1**attempt)  # Exponential backoff
+            if not success:
+                st.error(f"Failed to download {pdf_url} after {retries} attempts.")
+                continue
+            blob.upload_from_string(response.content, content_type="application/pdf")
+            st.write(f"Uploaded {file_name} to {bucket_name}")
+        else:
+            st.write(f"{file_name} already exists in {bucket_name}")
 
 
 def main():
     if "user_id" not in st.session_state:
-        st.session_state.user_id = str(
-            uuid.uuid4()
-        )  # Set a unique user_id if not already set
+        st.session_state.user_id = str(uuid.uuid4())
 
-    api_key = os.getenv("API_KEY")  # Your API key for the Custom Search JSON API
-    search_engine_id = os.getenv("SEARCH_ENGINE_ID")  # Your Search Engine ID
+    api_key = os.getenv("API_KEY")
+    search_engine_id = os.getenv("SEARCH_ENGINE_ID")
 
     st.title("Company Name Input")
     company_name = st.text_input("Enter the company name")
 
     project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
-    processor_id = os.getenv("DOCUMENT_AI_PROCESSOR_ID")
-    json_bucket = os.getenv("JSON_BUCKET_NAME")
     pdf_bucket = os.getenv("PDF_BUCKET_NAME")
-    directory = f"{company_name}_{st.session_state.user_id}"
-    gcs_output_uri = f"gs://{json_bucket}/{directory}/"
-    gcs_input_prefix = f"gs://{pdf_bucket}/{directory}/"
-    data_store_id = os.getenv("DATA_STORE_ID")
+    gcs_input_prefix = f"gs://{pdf_bucket}/"
     pdf_bucket_gcs_uri = f"{gcs_input_prefix}*"
 
     if st.button("Submit"):
         pdf_urls = search_pdfs(company_name, api_key, search_engine_id)
-        handle_input(company_name, pdf_urls, st.session_state.user_id)
-
-        # batch_process_documents(
-        #     project_id=project_id,
-        #     location="us",
-        #     processor_id=processor_id,
-        #     gcs_output_uri=gcs_output_uri,
-        #     gcs_input_prefix=gcs_input_prefix,
-        #     field_mask="text",
-        # )
+        handle_input(company_name, pdf_urls)
+        sasb_pdf_urls = fetch_sasb_pdf_links(company_name)
+        if sasb_pdf_urls:
+            st.write("Found SASB PDFs:")
+            for url in sasb_pdf_urls:
+                st.write(url)
+        handle_input(company_name, sasb_pdf_urls)
         project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
         location = "us"  # Values: "global"
-        data_store_id = os.getenv("DATASTORE_ID")
-        # gcs_uri = f"gs://pdf-bucket-85204/lego_a68b4541-d83b-41fb-a871-a038e4e7050f/*" # Adjusted to include wildcard
+
+        # Import the documents into the Datastore
+        st.write("Importing documents into Datastore...")
         import_documents_sample(
             project_id=project_id,
             location=location,
