@@ -117,7 +117,10 @@ def main():
             gcs_uri=pdf_bucket_gcs_uri,
         )
     # Get the search query from the user
-    search_query = st.text_input("Please type your search query:")
+    default_search_query = f"What do you know about {company_name} environment sustainability and governance?"
+    search_query = st.text_input(
+        "Please type your search query:", value=default_search_query
+    )
     if st.button("Search"):
         search_response = search_sample(
             project_id=project_id,
@@ -126,11 +129,18 @@ def main():
             # search_query=f"Please explain ESG or environmental social governance efforts from this company named {company_name}.",
             search_query=search_query,
         )
+
+        # Display the summary text
+        summary_text = search_response.summary.summary_text
+        st.markdown(f"**Summary:** {summary_text}")
         # Display the total size of the results
         st.markdown(f"**Total Results:** {search_response.total_size}")
 
         # Loop through each result
-        for result in search_response.results:
+        for i, result in enumerate(search_response.results, start=1):
+            # Display the result number
+            st.markdown(f"**Result {i}**")
+
             # Display the document ID
             st.markdown(f"**Document ID:** {result.id}")
 
@@ -148,9 +158,8 @@ def main():
                 snippet_text = snippet.get("snippet")
                 st.markdown(f"**Snippet:** {snippet_text}", unsafe_allow_html=True)
 
-        # Display the summary text
-        summary_text = search_response.summary.summary_text
-        st.markdown(f"**Summary:** {summary_text}")
+            # Add a separator between results
+            st.markdown("---")
 
 
 if __name__ == "__main__":
