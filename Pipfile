@@ -58,6 +58,8 @@ watchdog = "==4.0.0"
 pypdf2 = "*"
 google-cloud-documentai = "*"
 google-cloud-documentai-toolbox = "*"
+google-cloud-aiplatform = "*"
+google-cloud-discoveryengine = "*"
 
 [dev-packages]
 black = "*"
