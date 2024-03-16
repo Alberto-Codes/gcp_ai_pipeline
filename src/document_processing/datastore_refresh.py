@@ -1,7 +1,8 @@
+import os
 from typing import Optional
+
 from google.api_core.client_options import ClientOptions
 from google.cloud import discoveryengine
-import os
 
 # Replace these variables with your actual values
 

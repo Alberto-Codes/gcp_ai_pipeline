@@ -7,8 +7,8 @@ import streamlit as st
 from google.cloud import storage
 from PyPDF2 import PdfReader, PdfWriter
 
-from document_processing.document_ai_service import batch_process_documents
 from document_processing.datastore_refresh import import_documents_sample
+from document_processing.document_ai_service import batch_process_documents
 from gcp_integration.search_convo import search_sample
 
 
@@ -84,18 +84,20 @@ def main():
     st.title("Company Name Input")
     company_name = st.text_input("Enter the company name")
 
+    project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
+    processor_id = os.getenv("DOCUMENT_AI_PROCESSOR_ID")
+    json_bucket = os.getenv("JSON_BUCKET_NAME")
+    pdf_bucket = os.getenv("PDF_BUCKET_NAME")
+    directory = f"{company_name}_{st.session_state.user_id}"
+    gcs_output_uri = f"gs://{json_bucket}/{directory}/"
+    gcs_input_prefix = f"gs://{pdf_bucket}/{directory}/"
+    data_store_id = os.getenv("DATA_STORE_ID")
+    pdf_bucket_gcs_uri = f"{gcs_input_prefix}*"
+
     if st.button("Submit"):
         pdf_urls = search_pdfs(company_name, api_key, search_engine_id)
         handle_input(company_name, pdf_urls, st.session_state.user_id)
-        project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
-        processor_id = os.getenv("DOCUMENT_AI_PROCESSOR_ID")
-        json_bucket = os.getenv("JSON_BUCKET_NAME")
-        pdf_bucket = os.getenv("PDF_BUCKET_NAME")
-        directory = f"{company_name}_{st.session_state.user_id}"
-        gcs_output_uri = f"gs://{json_bucket}/{directory}/"
-        gcs_input_prefix = f"gs://{pdf_bucket}/{directory}/"
-        data_store_id = os.getenv("DATA_STORE_ID")
-        pdf_bucket_gcs_uri = f"{gcs_input_prefix}*"
+
         # batch_process_documents(
         #     project_id=project_id,
         #     location="us",
@@ -105,21 +107,50 @@ def main():
         #     field_mask="text",
         # )
         project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
-        location = "us" # Values: "global"
+        location = "us"  # Values: "global"
         data_store_id = os.getenv("DATASTORE_ID")
         # gcs_uri = f"gs://pdf-bucket-85204/lego_a68b4541-d83b-41fb-a871-a038e4e7050f/*" # Adjusted to include wildcard
-        import_documents_sample(project_id=project_id, location=location, data_store_id=os.getenv("DATA_STORE_ID"), gcs_uri=pdf_bucket_gcs_uri)
-        search_response=search_sample(project_id=project_id, location="us", engine_id=os.getenv("AI_ENGINE_ID"), search_query=f"{company_name} ESG OR environmental social governance")
-        # Access the 'summary_text' field and print it
-        # Iterate over the search results
-        # st.write(search_response.results)
-        # Access the 'summary' field
-        summary = search_response.summary
-        # Access the 'summary_text' field and print it
-        summary_text = summary.summary_text
-        st.write(summary_text)
+        import_documents_sample(
+            project_id=project_id,
+            location=location,
+            data_store_id=os.getenv("DATA_STORE_ID"),
+            gcs_uri=pdf_bucket_gcs_uri,
+        )
+    # Get the search query from the user
+    search_query = st.text_input("Please type your search query:")
+    if st.button("Search"):
+        search_response = search_sample(
+            project_id=project_id,
+            location="us",
+            engine_id=os.getenv("AI_ENGINE_ID"),
+            # search_query=f"Please explain ESG or environmental social governance efforts from this company named {company_name}.",
+            search_query=search_query,
+        )
+        # Display the total size of the results
+        st.markdown(f"**Total Results:** {search_response.total_size}")
 
-        
+        # Loop through each result
+        for result in search_response.results:
+            # Display the document ID
+            st.markdown(f"**Document ID:** {result.id}")
+
+            # Display the document title
+            title = result.document.derived_struct_data.get("title")
+            st.markdown(f"**Title:** {title}")
+
+            # Display the document link
+            link = result.document.derived_struct_data.get("link")
+            st.markdown(f"**Link:** {link}")
+
+            # Display the snippets
+            snippets = result.document.derived_struct_data.get("snippets")
+            for snippet in snippets:
+                snippet_text = snippet.get("snippet")
+                st.markdown(f"**Snippet:** {snippet_text}", unsafe_allow_html=True)
+
+        # Display the summary text
+        summary_text = search_response.summary.summary_text
+        st.markdown(f"**Summary:** {summary_text}")
 
 
 if __name__ == "__main__":
