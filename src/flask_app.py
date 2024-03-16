@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify
 import requests
+from google.cloud import storage
+import os
 
 app = Flask(__name__)
 
@@ -35,5 +37,33 @@ def handle_search():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/handle_input', methods=['POST'])
+def handle_input():
+    data = request.json
+    pdf_urls = data['pdf_urls']
+    bucket_name = os.getenv("PDF_BUCKET_NAME")
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    uploaded_files = []
+    failed_files = []
+    already_exists_files = []  # New list to track files that already exist
+
+    for pdf_url in pdf_urls:
+        file_name = pdf_url.split("/")[-1]
+        blob = bucket.blob(file_name)
+        if blob.exists():
+            already_exists_files.append(file_name)
+        else:
+            try:
+                response = requests.get(pdf_url, timeout=5)
+                response.raise_for_status()
+                blob.upload_from_string(response.content, content_type="application/pdf")
+                uploaded_files.append(file_name)
+            except Exception as e:
+                failed_files.append((file_name, str(e)))
+
+    return jsonify({"uploaded": uploaded_files, "already_exists": already_exists_files, "failed": failed_files})
+
 if __name__ == '__main__':
     app.run(debug=True)
+

@@ -12,8 +12,15 @@ from gcp_integration.search_convo import search_sample
 from esg_score_fetch.sasb_fetch import fetch_sasb_pdf_links
 import streamlit.components.v1 as components
 
-# Assuming your Flask app runs on http://localhost:5000
-FLASK_BACKEND_URL = "http://localhost:5000/search_pdfs"
+import os
+import uuid
+import requests
+import streamlit as st
+import streamlit.components.v1 as components
+
+# Update these URLs to point to your Flask routes
+FLASK_BACKEND_SEARCH_URL = "http://localhost:5000/search_pdfs"
+FLASK_BACKEND_HANDLE_URL = "http://localhost:5000/handle_input"
 
 def fetch_pdf_urls(company_name, api_key, search_engine_id):
     params = {
@@ -21,76 +28,32 @@ def fetch_pdf_urls(company_name, api_key, search_engine_id):
         "api_key": api_key,
         "search_engine_id": search_engine_id
     }
-    response = requests.get(FLASK_BACKEND_URL, params=params)
+    response = requests.get(FLASK_BACKEND_SEARCH_URL, params=params)
     if response.status_code == 200:
         return response.json()
     else:
         st.error(f"Failed to fetch PDF URLs: {response.text}")
         return []
-
-
-def search_pdfs(company_name, api_key, search_engine_id):
-    search_url = "https://www.googleapis.com/customsearch/v1"
-    # Include 'ESG' and 'environmental social governance' in the query
-    query = f"{company_name} ESG OR environmental social governance filetype:pdf"
-    params = {
-        "key": api_key,
-        "cx": search_engine_id,
-        "q": query,
-        "num": 5,  # Number of search results to return
+def upload_pdf_urls(pdf_urls):
+    data = {
+        "pdf_urls": pdf_urls
     }
-    response = requests.get(search_url, params=params, timeout=5)
-    response.raise_for_status()
-    search_results = response.json()
-    pdf_urls = [
-        item["link"]
-        for item in search_results.get("items", [])
-        if item.get("link").endswith(".pdf")
-    ]
-    return pdf_urls
+    response = requests.post(FLASK_BACKEND_HANDLE_URL, json=data)
+    if response.status_code == 200:
+        result = response.json()
+        if result['uploaded']:
+            uploaded_files = '<br>'.join(result['uploaded'])  # Join list items with line breaks for HTML
+            st.markdown(f"Uploaded files:<br>{uploaded_files}", unsafe_allow_html=True)
+        if result['already_exists']:
+            existing_files = '<br>'.join(result['already_exists'])
+            st.markdown(f"Files already exist:<br>{existing_files}", unsafe_allow_html=True)
+        if result['failed']:
+            failed_files = '<br>'.join(result['failed'])
+            st.markdown(f"Failed files:<br>{failed_files}", unsafe_allow_html=True)
+    else:
+        st.error("Failed to process PDF URLs.")
 
 
-def handle_input(company_name, pdf_urls):
-    st.write(f"Company Name: {company_name}")
-    storage_client = storage.Client(project=os.getenv("GOOGLE_CLOUD_PROJECT"))
-    bucket_name = os.getenv("PDF_BUCKET_NAME")
-    bucket = storage_client.get_bucket(bucket_name)
-
-    # directory_name = f"{company_name}_{user_id}/"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
-    }
-
-    for pdf_url in pdf_urls:
-        file_name = pdf_url.split("/")[-1]
-        blob = bucket.blob(file_name)
-        if not blob.exists():
-            # If the file does not exist, download it
-            success = False
-            retries = 2  # Max retries
-            for attempt in range(retries):
-                try:
-                    response = requests.get(
-                        pdf_url, headers=headers, timeout=5
-                    )  # Added timeout
-                    response.raise_for_status()
-                    # If request is successful, break out of the retry loop
-                    success = True
-                    break
-                except (
-                    requests.exceptions.ConnectionError,
-                    requests.exceptions.HTTPError,
-                    requests.exceptions.Timeout,
-                ) as e:
-                    st.error(f"Attempt {attempt + 1} failed: {e}")
-                    time.sleep(1**attempt)  # Exponential backoff
-            if not success:
-                st.error(f"Failed to download {pdf_url} after {retries} attempts.")
-                continue
-            blob.upload_from_string(response.content, content_type="application/pdf")
-            st.write(f"Uploaded {file_name} to {bucket_name}")
-        else:
-            st.write(f"{file_name} already exists in {bucket_name}")
 
 
 def main():
@@ -114,20 +77,19 @@ def main():
 
 
 
-        if st.button("Submit"):
-            # Replace direct call to search_pdfs with fetch_pdf_urls
+        if st.button("Fetch PDFs"):
             pdf_urls = fetch_pdf_urls(company_name, api_key, search_engine_id)
             if pdf_urls:
-                st.write("Found PDF URLs:")
+                st.success("Found PDF URLs")
                 for url in pdf_urls:
                     st.write(url)
-            handle_input(company_name, pdf_urls)
+                upload_pdf_urls(pdf_urls)
             sasb_pdf_urls = fetch_sasb_pdf_links(company_name)
             if sasb_pdf_urls:
                 st.write("Found SASB PDFs:")
                 for url in sasb_pdf_urls:
                     st.write(url)
-            handle_input(company_name, sasb_pdf_urls)
+                upload_pdf_urls(sasb_pdf_urls)
             project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
             location = "us"  # Values: "global"
 
