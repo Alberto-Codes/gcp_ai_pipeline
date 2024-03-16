@@ -10,6 +10,7 @@ from PyPDF2 import PdfReader, PdfWriter
 from document_processing.datastore_refresh import import_documents_sample
 from document_processing.document_ai_service import batch_process_documents
 from gcp_integration.search_convo import search_sample
+from esg_score_fetch.sasb_fetch import fetch_sasb_pdf_links
 
 
 def search_pdfs(company_name, api_key, search_engine_id):
@@ -59,6 +60,7 @@ def handle_input(company_name, pdf_urls, user_id):
             except (
                 requests.exceptions.ConnectionError,
                 requests.exceptions.HTTPError,
+                requests.exceptions.Timeout,
             ) as e:
                 st.error(f"Attempt {attempt + 1} failed: {e}")
                 time.sleep(2**attempt)  # Exponential backoff
@@ -97,6 +99,12 @@ def main():
     if st.button("Submit"):
         pdf_urls = search_pdfs(company_name, api_key, search_engine_id)
         handle_input(company_name, pdf_urls, st.session_state.user_id)
+        sasb_pdf_urls = fetch_sasb_pdf_links(company_name)
+        if sasb_pdf_urls:
+            st.write("Found SASB PDFs:")
+            for url in sasb_pdf_urls:
+                st.write(url)
+        handle_input(company_name, sasb_pdf_urls, st.session_state.user_id)
 
         # batch_process_documents(
         #     project_id=project_id,
