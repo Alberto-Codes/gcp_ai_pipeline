@@ -1,7 +1,8 @@
+import os
 from typing import Optional
+
 from google.api_core.client_options import ClientOptions
 from google.cloud import discoveryengine
-import os
 
 # Replace these variables with your actual values
 
@@ -32,7 +33,7 @@ def import_documents_sample(
         gcs_source=discoveryengine.GcsSource(
             input_uris=[gcs_uri], data_schema="content"
         ),
-        reconciliation_mode=discoveryengine.ImportDocumentsRequest.ReconciliationMode.FULL,
+        reconciliation_mode=discoveryengine.ImportDocumentsRequest.ReconciliationMode.INCREMENTAL,
     )
 
     operation = client.import_documents(request=request)

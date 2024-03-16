@@ -1,3 +1,4 @@
+import os
 import re
 from typing import Optional
 
@@ -5,7 +6,7 @@ from google.api_core.client_options import ClientOptions
 from google.api_core.exceptions import InternalServerError, RetryError
 from google.cloud import documentai  # type: ignore
 from google.cloud import storage
-import os
+
 # TODO(developer): Uncomment these variables before running the sample.
 # project_id = "YOUR_PROJECT_ID"
 # location = "YOUR_PROCESSOR_LOCATION" # Format is "us" or "eu"
@@ -109,7 +110,10 @@ def batch_process_documents(
     for process in list(metadata.individual_process_statuses):
         matches = re.match(r"gs://(.*?)/(.*)", process.output_gcs_destination)
         if not matches:
-            print("Could not parse output GCS destination:", process.output_gcs_destination)
+            print(
+                "Could not parse output GCS destination:",
+                process.output_gcs_destination,
+            )
             continue
 
         output_bucket_name, output_prefix = matches.groups()
@@ -118,19 +122,20 @@ def batch_process_documents(
 
         for blob in output_blobs:
             if blob.content_type != "application/json":
-                print(f"Skipping non-supported file: {blob.name} - Mimetype: {blob.content_type}")
+                print(
+                    f"Skipping non-supported file: {blob.name} - Mimetype: {blob.content_type}"
+                )
                 continue
 
             # Construct the new blob name correctly
             # Split the blob name by '/' and keep the original file name
-            original_file_name = blob.name.split('/')[-1]
+            original_file_name = blob.name.split("/")[-1]
             # Adjusting output_prefix by removing the last directory part
-            prefix_parts = output_prefix.split('/')
+            prefix_parts = output_prefix.split("/")
             # Remove the last two parts (empty string because of trailing slash and the last directory)
-            adjusted_prefix = '/'.join(prefix_parts[:-2]) + '/'
-            
-            new_blob_name = f"{adjusted_prefix}{original_file_name}".replace('//', '/')
-            
+            adjusted_prefix = "/".join(prefix_parts[:-2]) + "/"
+
+            new_blob_name = f"{adjusted_prefix}{original_file_name}".replace("//", "/")
 
             # Perform the move operation by downloading and re-uploading the file
             temp_blob_path = f"/tmp/{original_file_name}"
@@ -145,5 +150,3 @@ def batch_process_documents(
 
             # Clean up the temporary file
             os.remove(temp_blob_path)
-
-
