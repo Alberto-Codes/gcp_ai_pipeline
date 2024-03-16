@@ -14,6 +14,23 @@
                 "--server.enableXsrfProtection",
                 "false"
             ]
+        },
+        {
+            "name": "Flask",
+            "type": "python",
+            "request": "launch",
+            "program": "src/flask_app.py",
+            "env": {
+                "FLASK_APP": "src/flask_app.py",
+                "FLASK_ENV": "development",
+                "FLASK_DEBUG": "1"
+            },
+            "args": [
+                "run",
+                "--no-debugger",
+                "--no-reload"
+            ],
+            "console": "integratedTerminal"
         }
     ]
 }

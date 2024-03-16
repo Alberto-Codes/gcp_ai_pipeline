@@ -12,7 +12,21 @@ from gcp_integration.search_convo import search_sample
 from esg_score_fetch.sasb_fetch import fetch_sasb_pdf_links
 import streamlit.components.v1 as components
 
+# Assuming your Flask app runs on http://localhost:5000
+FLASK_BACKEND_URL = "http://localhost:5000/search_pdfs"
 
+def fetch_pdf_urls(company_name, api_key, search_engine_id):
+    params = {
+        "company_name": company_name,
+        "api_key": api_key,
+        "search_engine_id": search_engine_id
+    }
+    response = requests.get(FLASK_BACKEND_URL, params=params)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        st.error(f"Failed to fetch PDF URLs: {response.text}")
+        return []
 
 
 def search_pdfs(company_name, api_key, search_engine_id):
@@ -101,7 +115,12 @@ def main():
 
 
         if st.button("Submit"):
-            pdf_urls = search_pdfs(company_name, api_key, search_engine_id)
+            # Replace direct call to search_pdfs with fetch_pdf_urls
+            pdf_urls = fetch_pdf_urls(company_name, api_key, search_engine_id)
+            if pdf_urls:
+                st.write("Found PDF URLs:")
+                for url in pdf_urls:
+                    st.write(url)
             handle_input(company_name, pdf_urls)
             sasb_pdf_urls = fetch_sasb_pdf_links(company_name)
             if sasb_pdf_urls:
