@@ -109,7 +109,7 @@ def main():
         data_store_id = os.getenv("DATASTORE_ID")
         # gcs_uri = f"gs://pdf-bucket-85204/lego_a68b4541-d83b-41fb-a871-a038e4e7050f/*" # Adjusted to include wildcard
         import_documents_sample(project_id=project_id, location=location, data_store_id=os.getenv("DATA_STORE_ID"), gcs_uri=pdf_bucket_gcs_uri)
-        search_response=search_sample(project_id=project_id, location="us", engine_id=os.getenv("AI_ENGINE_ID"), search_query=f"{company_name} ESG OR environmental social governance")
+        search_response=search_sample(project_id=project_id, location="us", engine_id=os.getenv("AI_ENGINE_ID"), search_query=f"Please explain ESG or environmental social governance efforts from this company named {company_name}.")
         # Access the 'summary_text' field and print it
         # Iterate over the search results
         # st.write(search_response.results)
