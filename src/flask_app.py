@@ -4,9 +4,70 @@ import os
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask, jsonify, request
+from google.auth import default
+from google.auth.transport.requests import Request
 from google.cloud import storage
 
+credentials, project = default()
+
+
+if not credentials.valid:
+    if credentials.expired and credentials.refresh_token:
+        credentials.refresh(Request())
+
 app = Flask(__name__)
+
+
+@app.route("/search_ai", methods=["POST"])
+def search_with_discovery_engine():
+
+    data = request.get_json()
+    query = data.get("query", "")
+    preamble = data.get("preamble", "")
+    project = data.get("project")
+    location = data.get("location", "")
+
+    data_store = data.get("data_store", "")
+    payload = {
+        "query": query,
+        "pageSize": 10,
+        "queryExpansionSpec": {"condition": "AUTO"},
+        "spellCorrectionSpec": {"mode": "AUTO"},
+        "contentSearchSpec": {
+            "summarySpec": {
+                "summaryResultCount": 5,
+                "modelPromptSpec": {"preamble": preamble},
+                "modelSpec": {"version": "preview"},
+                "ignoreAdversarialQuery": True,
+                "includeCitations": True,
+            },
+            "snippetSpec": {"maxSnippetCount": 1, "returnSnippet": True},
+        },
+    }
+    url = f"https://us-discoveryengine.googleapis.com/v1alpha/projects/{project}/locations/{location}/collections/default_collection/dataStores/{data_store}/servingConfigs/default_search:search"
+
+    access_token = credentials.token
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+
+    response = requests.post(url, headers=headers, json=payload)
+
+    if response.status_code == 200:
+        return jsonify(response.json())
+    else:
+        return (
+            jsonify(
+                {
+                    "error": "Request failed",
+                    "status_code": response.status_code,
+                    "message": response.text,
+                }
+            ),
+            response.status_code,
+        )
 
 
 def search_pdfs(company_name, api_key, search_engine_id):
@@ -49,14 +110,11 @@ def fetch_sasb_pdf_links_endpoint():
     if not company_name:
         return jsonify({"error": "Company name is required"}), 400
 
-    # Send an initial request to the website
     url = "https://sasb.ifrs.org/company-use/sasb-reporters/"
     response = requests.get(url)
 
-    # Get the cookie from the response headers
     cookie = response.cookies.get_dict()
 
-    # Convert the cookie dictionary to a string
     cookie_str = "; ".join([f"{k}={v}" for k, v in cookie.items()])
 
     url = "https://sasb.ifrs.org/wp-json/sasb/v1/reportsSearch"
@@ -81,18 +139,14 @@ def fetch_sasb_pdf_links_endpoint():
     if response.status_code != 200:
         return []
 
-    # Parse the JSON response
     data = json.loads(response.text)
 
-    # Parse the HTML content
     soup = BeautifulSoup(data["html"], "html.parser")
 
-    # Find all 'a' tags (which define hyperlinks) in the HTML content
     links = soup.find_all("a")
 
     base_url = "https://sasb.ifrs.org/company-use/sasb-reporters/"
 
-    # Extract the href attribute (which contains the URL) from each 'a' tag
     pdf_links = [
         (
             base_url + link.get("href")
@@ -113,7 +167,7 @@ def handle_input():
     bucket = storage_client.bucket(bucket_name)
     uploaded_files = []
     failed_files = []
-    already_exists_files = []  # New list to track files that already exist
+    already_exists_files = []
 
     for pdf_url in pdf_urls:
         file_name = pdf_url.split("/")[-1]

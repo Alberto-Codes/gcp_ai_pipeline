@@ -1,17 +1,13 @@
+import json
 import os
-import time
 import uuid
 
 import requests
 import streamlit as st
 import streamlit.components.v1 as components
-from google.cloud import storage
-from PyPDF2 import PdfReader, PdfWriter
 
 from document_processing.datastore_refresh import import_documents_sample
-from gcp_integration.search_convo import search_ai
 
-# Update these URLs to point to your Flask routes
 FLASK_BACKEND_SEARCH_URL = "http://localhost:5000/search_pdfs"
 FLASK_BACKEND_HANDLE_URL = "http://localhost:5000/handle_input"
 FLASK_BACKEND_URL = "http://localhost:5000"
@@ -62,9 +58,7 @@ def upload_pdf_urls(pdf_urls):
     if response.status_code == 200:
         result = response.json()
         if result["uploaded"]:
-            uploaded_files = "<br>".join(
-                result["uploaded"]
-            )  # Join list items with line breaks for HTML
+            uploaded_files = "<br>".join(result["uploaded"])
             st.markdown(f"Uploaded files:<br>{uploaded_files}", unsafe_allow_html=True)
         if result["already_exists"]:
             existing_files = "<br>".join(result["already_exists"])
@@ -111,9 +105,8 @@ def main():
                     st.write(url)
                 upload_pdf_urls(sasb_pdf_urls)
             project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
-            location = "us"  # Values: "global"
+            location = "us"
 
-            # Import the documents into the Datastore
             st.write("Importing documents into Datastore...")
             import_documents_sample(
                 project_id=project_id,
@@ -127,48 +120,59 @@ def main():
                 data_store_id=os.getenv("CHAT_PDF_DATA_STORE_ID"),
                 gcs_uri=pdf_bucket_gcs_uri,
             )
-        # Get the search query from the user
+
         default_search_query = f"What is the net zero target for {company_name}?"
         search_query = st.text_input(
             "Please type your search query:", value=default_search_query
         )
-        if st.button("Search"):
-            search_response = search_ai(
-                project_id=project_id,
-                location="us",
-                engine_id=os.getenv("SEARCH_AI_ENGINE_ID"),
-                # search_query=f"Please explain ESG or environmental social governance efforts from this company named {company_name}.",
-                search_query=search_query,
-                preamble=f"You are a robot that always responds with a year"
+
+        if st.button("Search AI"):
+            payload = {
+                "project": project_id,
+                "location": "us",
+                "data_store": os.getenv("SEARCH_PDF_DATA_STORE_ID"),
+                "query": search_query,
+                "preamble": "You are a robot that always responds with a year",
+            }
+            headers = {"Content-Type": "application/json"}
+
+            response = requests.post(
+                FLASK_BACKEND_URL + "/search_ai",
+                data=json.dumps(payload),
+                headers=headers,
             )
 
-            # Display the summary text
-            summary_text = search_response.summary.summary_text
-            st.markdown(f"**Summary:** {summary_text}")
-            # Display the total size of the results
-            st.markdown(f"**Total Results:** {search_response.total_size}")
+            if response.status_code == 200:
+                search_response = response.json()
 
-            # Loop through each result
-            for i, result in enumerate(search_response.results, start=1):
-                # Display the result number
-                st.markdown(f"**Result {i}**")
+                corrected_query = search_response.get("correctedQuery", "")
+                st.markdown(f"**Corrected Query:** {corrected_query}")
 
-                # Display the document ID
-                st.markdown(f"**Document ID:** {result.id}")
+                summary_text = search_response.get("summary", {}).get("summaryText", "")
+                st.markdown(f"**Answer to Query:** {summary_text}")
 
-                # Display the document title
-                title = result.document.derived_struct_data.get("title")
-                st.markdown(f"**Title:** {title}")
+                results = search_response.get("results", [])
 
-                # Display the document link
-                link = result.document.derived_struct_data.get("link")
-                st.markdown(f"**Link:** {link}")
+                for i, result in enumerate(results, start=1):
 
-                # Display the snippets
-                snippets = result.document.derived_struct_data.get("snippets")
-                for snippet in snippets:
-                    snippet_text = snippet.get("snippet")
-                    st.markdown(f"**Snippet:** {snippet_text}", unsafe_allow_html=True)
+                    document_data = result.get("document", {}).get(
+                        "derivedStructData", {}
+                    )
+
+                    title = document_data.get("title", "")
+                    link = document_data.get("link", "").replace(
+                        "gs://", "https://storage.cloud.google.com/"
+                    )
+                    snippet = document_data.get("snippets", [{}])[0].get("snippet", "")
+
+                    st.markdown(
+                        f"**[{i}]({link})**\n{title}\n{snippet}\n",
+                        unsafe_allow_html=True,
+                    )
+            else:
+                st.error(
+                    f"Search failed with status code {response.status_code}: {response.text}"
+                )
 
     with col2:
 
@@ -201,10 +205,6 @@ def main():
                 """,
             height=600,
         )
-
-        # More of your Streamlit app code goes here
-
-        # More of your Streamlit app code goes here
 
 
 if __name__ == "__main__":
