@@ -6,10 +6,7 @@ import requests
 import streamlit as st
 import streamlit.components.v1 as components
 
-FLASK_BACKEND_SEARCH_URL = "http://localhost:5000/search_pdfs"
-FLASK_BACKEND_HANDLE_URL = "http://localhost:5000/handle_input"
-FLASK_BACKEND_URL = "http://localhost:5000"
-
+FLASK_BACKEND_URL = os.getenv("FLASK_BACKEND_URL")
 
 def fetch_pdf_urls(company_name, api_key, search_engine_id):
     params = {
@@ -17,7 +14,7 @@ def fetch_pdf_urls(company_name, api_key, search_engine_id):
         "api_key": api_key,
         "search_engine_id": search_engine_id,
     }
-    response = requests.get(FLASK_BACKEND_SEARCH_URL, params=params)
+    response = requests.get(f"{FLASK_BACKEND_URL}/search_pdfs", params=params)
     if response.status_code == 200:
         return response.json()
     else:
@@ -26,10 +23,6 @@ def fetch_pdf_urls(company_name, api_key, search_engine_id):
 
 
 def fetch_sasb_pdf_links(company_name):
-    FLASK_BACKEND_URL = os.getenv("FLASK_BACKEND_URL")
-    if not FLASK_BACKEND_URL:
-        raise ValueError("Missing FLASK_BACKEND_URL environment variable")
-
     response = requests.get(
         f"{FLASK_BACKEND_URL}/fetch_sasb_pdf_links",
         params={"company_name": company_name},
@@ -52,7 +45,7 @@ def fetch_sasb_pdf_links(company_name):
 
 def upload_pdf_urls(pdf_urls):
     data = {"pdf_urls": pdf_urls}
-    response = requests.post(FLASK_BACKEND_HANDLE_URL, json=data)
+    response = requests.post(f"{FLASK_BACKEND_URL}/handle_input", json=data)
     if response.status_code == 200:
         result = response.json()
         if result["uploaded"]:

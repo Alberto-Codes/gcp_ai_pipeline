@@ -26,18 +26,8 @@ def import_documents():
     project_id = data.get('project_id')
     location = data.get('location')
     data_store_id = data.get('data_store_id')
-    # branch_id = data.get('branch_id')
     branch_id = 0
     gcs_uri = data.get('gcs_uri')
-
-    # credentials, project = default()
-
-    # if not credentials.valid:
-    #     if credentials.expired and credentials.refresh_token:
-    #         credentials.refresh(Request())
-
-
-
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
@@ -247,5 +237,6 @@ def handle_input():
     )
 
 
-if __name__ == "__main__":
-    app.run(debug=True)
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
