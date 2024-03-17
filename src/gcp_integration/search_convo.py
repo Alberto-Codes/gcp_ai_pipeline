@@ -10,7 +10,7 @@ from google.cloud import discoveryengine_v1 as discoveryengine
 # search_query = "YOUR_SEARCH_QUERY"
 
 
-def search_sample(
+def search_ai(
     project_id: str,
     location: str,
     engine_id: str,

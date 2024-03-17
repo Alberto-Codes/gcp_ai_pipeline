@@ -9,7 +9,7 @@ from google.cloud import storage
 from PyPDF2 import PdfReader, PdfWriter
 
 from document_processing.datastore_refresh import import_documents_sample
-from gcp_integration.search_convo import search_sample
+from gcp_integration.search_convo import search_ai
 
 # Update these URLs to point to your Flask routes
 FLASK_BACKEND_SEARCH_URL = "http://localhost:5000/search_pdfs"
@@ -127,7 +127,7 @@ def main():
             "Please type your search query:", value=default_search_query
         )
         if st.button("Search"):
-            search_response = search_sample(
+            search_response = search_ai(
                 project_id=project_id,
                 location="us",
                 engine_id=os.getenv("SEARCH_AI_ENGINE_ID"),
