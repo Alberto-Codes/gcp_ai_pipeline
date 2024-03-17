@@ -1,3 +1,4 @@
+import os
 import re
 from typing import Optional
 
@@ -106,10 +107,7 @@ def batch_process_documents(
     storage_client = storage.Client()
 
     print("Output files:")
-    # One process per Input Document
     for process in list(metadata.individual_process_statuses):
-        # output_gcs_destination format: gs://BUCKET/PREFIX/OPERATION_NUMBER/INPUT_FILE_NUMBER/
-        # The Cloud Storage API requires the bucket name and URI prefix separately
         matches = re.match(r"gs://(.*?)/(.*)", process.output_gcs_destination)
         if not matches:
             print(
@@ -118,29 +116,37 @@ def batch_process_documents(
             )
             continue
 
-        output_bucket, output_prefix = matches.groups()
+        output_bucket_name, output_prefix = matches.groups()
+        output_bucket = storage_client.get_bucket(output_bucket_name)
+        output_blobs = output_bucket.list_blobs(prefix=output_prefix)
 
-        # Get List of Document Objects from the Output Bucket
-        output_blobs = storage_client.list_blobs(output_bucket, prefix=output_prefix)
-
-        # Document AI may output multiple JSON files per source file
         for blob in output_blobs:
-            # Document AI should only output JSON files to GCS
             if blob.content_type != "application/json":
                 print(
                     f"Skipping non-supported file: {blob.name} - Mimetype: {blob.content_type}"
                 )
                 continue
 
-            # Download JSON File as bytes object and convert to Document Object
-            print(f"Fetching {blob.name}")
-            document = documentai.Document.from_json(
-                blob.download_as_bytes(), ignore_unknown_fields=True
-            )
+            # Construct the new blob name correctly
+            # Split the blob name by '/' and keep the original file name
+            original_file_name = blob.name.split("/")[-1]
+            # Adjusting output_prefix by removing the last directory part
+            prefix_parts = output_prefix.split("/")
+            # Remove the last two parts (empty string because of trailing slash and the last directory)
+            adjusted_prefix = "/".join(prefix_parts[:-2]) + "/"
 
-            # For a full list of Document object attributes, please reference this page:
-            # https://cloud.google.com/python/docs/reference/documentai/latest/google.cloud.documentai_v1.types.Document
+            new_blob_name = f"{adjusted_prefix}{original_file_name}".replace("//", "/")
 
-            # Read the text recognition output from the processor
-            print("The document contains the following text:")
-            print(document.text)
+            # Perform the move operation by downloading and re-uploading the file
+            temp_blob_path = f"/tmp/{original_file_name}"
+            blob.download_to_filename(temp_blob_path)
+            new_blob = output_bucket.blob(new_blob_name)
+            new_blob.upload_from_filename(temp_blob_path)
+
+            # Optionally, delete the original blob after successful copy
+            blob.delete()
+
+            print(f"Moved {blob.name} to {new_blob_name}")
+
+            # Clean up the temporary file
+            os.remove(temp_blob_path)
