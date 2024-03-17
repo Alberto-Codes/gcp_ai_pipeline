@@ -23,7 +23,8 @@ def search_ai(
 
     content_search_spec = discoveryengine.SearchRequest.ContentSearchSpec(
         snippet_spec=discoveryengine.SearchRequest.ContentSearchSpec.SnippetSpec(
-            return_snippet=True
+            return_snippet=True,
+            max_snippet_count=1,
         ),
         summary_spec=discoveryengine.SearchRequest.ContentSearchSpec.SummarySpec(
             summary_result_count=5,
@@ -34,7 +35,7 @@ def search_ai(
                 preamble=preamble
             ),
             model_spec=discoveryengine.SearchRequest.ContentSearchSpec.SummarySpec.ModelSpec(
-                version="stable",
+                version="preview",
             ),
         ),
     )

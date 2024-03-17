@@ -128,7 +128,7 @@ def main():
                 gcs_uri=pdf_bucket_gcs_uri,
             )
         # Get the search query from the user
-        default_search_query = f"What do you know about {company_name} environment sustainability and governance?"
+        default_search_query = f"What is the net zero target for {company_name}?"
         search_query = st.text_input(
             "Please type your search query:", value=default_search_query
         )
@@ -139,6 +139,7 @@ def main():
                 engine_id=os.getenv("SEARCH_AI_ENGINE_ID"),
                 # search_query=f"Please explain ESG or environmental social governance efforts from this company named {company_name}.",
                 search_query=search_query,
+                preamble=f"You are a robot that always responds with a year"
             )
 
             # Display the summary text
