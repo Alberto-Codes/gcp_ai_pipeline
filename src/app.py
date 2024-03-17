@@ -9,13 +9,12 @@ from google.cloud import storage
 from PyPDF2 import PdfReader, PdfWriter
 
 from document_processing.datastore_refresh import import_documents_sample
-from esg_score_fetch.sasb_fetch import fetch_sasb_pdf_links
 from gcp_integration.search_convo import search_sample
 
 # Update these URLs to point to your Flask routes
 FLASK_BACKEND_SEARCH_URL = "http://localhost:5000/search_pdfs"
 FLASK_BACKEND_HANDLE_URL = "http://localhost:5000/handle_input"
-
+FLASK_BACKEND_URL = "http://localhost:5000" 
 
 def fetch_pdf_urls(company_name, api_key, search_engine_id):
     params = {
@@ -29,6 +28,28 @@ def fetch_pdf_urls(company_name, api_key, search_engine_id):
     else:
         st.error(f"Failed to fetch PDF URLs: {response.text}")
         return []
+    
+def fetch_sasb_pdf_links(company_name):
+    FLASK_BACKEND_URL = os.getenv('FLASK_BACKEND_URL')
+    if not FLASK_BACKEND_URL:
+        raise ValueError("Missing FLASK_BACKEND_URL environment variable")
+    
+    response = requests.get(f"{FLASK_BACKEND_URL}/fetch_sasb_pdf_links", params={"company_name": company_name})
+    
+    pdf_links = []
+    if response.status_code == 200:
+        pdf_links = response.json().get('pdf_links', [])
+        if pdf_links:
+            st.write("Found SASB PDFs:")
+            for url in pdf_links:
+                st.write(url)
+        else:
+            st.write("No SASB PDFs found for this company.")
+    else:
+        st.error("Failed to fetch SASB PDF URLs.")
+    
+    return pdf_links
+
 
 
 def upload_pdf_urls(pdf_urls):
@@ -47,7 +68,7 @@ def upload_pdf_urls(pdf_urls):
                 f"Files already exist:<br>{existing_files}", unsafe_allow_html=True
             )
         if result["failed"]:
-            failed_files = "<br>".join(result["failed"])
+            failed_files = "<br>".join([f"{file_name}: {error}" for file_name, error in result["failed"]])
             st.markdown(f"Failed files:<br>{failed_files}", unsafe_allow_html=True)
     else:
         st.error("Failed to process PDF URLs.")
