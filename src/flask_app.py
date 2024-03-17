@@ -43,11 +43,11 @@ def handle_search():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route('/fetch_sasb_pdf_links', methods=['GET'])
+@app.route("/fetch_sasb_pdf_links", methods=["GET"])
 def fetch_sasb_pdf_links_endpoint():
-    company_name = request.args.get('company_name')
+    company_name = request.args.get("company_name")
     if not company_name:
-        return jsonify({'error': 'Company name is required'}), 400
+        return jsonify({"error": "Company name is required"}), 400
 
     # Send an initial request to the website
     url = "https://sasb.ifrs.org/company-use/sasb-reporters/"
@@ -101,7 +101,7 @@ def fetch_sasb_pdf_links_endpoint():
         )
         for link in links
     ]
-    return jsonify({'pdf_links': pdf_links})
+    return jsonify({"pdf_links": pdf_links})
 
 
 @app.route("/handle_input", methods=["POST"])
