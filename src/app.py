@@ -134,6 +134,11 @@ def main():
         search_query = st.text_input(
             "Please type your search query:", value=default_search_query
         )
+        preamble = st.text_area(
+            "Please type your preamble:",
+            value="You are a robot who favors scalar answers, that always responds with a year.",
+            # help="This is the preamble that will be used in the search AI query.",
+        )
 
         if st.button("Search AI"):
             search_ai_payload = {
@@ -141,7 +146,7 @@ def main():
                 "location": "us",
                 "data_store_id": os.getenv("SEARCH_PDF_DATA_STORE_ID"),
                 "query": search_query,
-                "preamble": "You are a robot that always responds with a year",
+                "preamble": preamble,
             }
             headers = {"Content-Type": "application/json"}
 
