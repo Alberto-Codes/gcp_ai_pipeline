@@ -8,19 +8,50 @@ from google.auth import default
 from google.auth.transport.requests import Request
 from google.cloud import storage
 
-credentials, project = default()
+from flask import Flask, redirect, url_for, request, jsonify
+from flask_dance.contrib.google import make_google_blueprint, google
+import os
+import json
 
+from dotenv import load_dotenv
 
-if not credentials.valid:
-    if credentials.expired and credentials.refresh_token:
-        credentials.refresh(Request())
+load_dotenv()
 
-access_token = credentials.token
+os.environ['OAUTH_CREDENTIALS'] = os.environ['GCP_AI_PIPELINE_OAUTH_CREDENTIALS']
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('FLASK_SECRET_KEY')  # Replace with your own secret key
+
+# Get the OAuth 2.0 credentials from the environment variable
+credentials_json = json.loads(os.environ['OAUTH_CREDENTIALS'])
+
+# Extract the credentials from the "web" key
+credentials = credentials_json['web']
+
+# Create the Google OAuth 2.0 blueprint
+google_bp = make_google_blueprint(
+    client_id=credentials['client_id'],
+    client_secret=credentials['client_secret'],
+    scope=["https://www.googleapis.com/auth/cloud-platform"],
+    offline=True,
+    reprompt_consent=True,
+)
+
+app.register_blueprint(google_bp, url_prefix="/login")
+
+@app.route('/')
+def index():
+    if not google.authorized:
+        return redirect(url_for("google.login"))
+    resp = google.get("/oauth2/v1/userinfo")
+    assert resp.ok, resp.text
+    return "You are {email} on Google".format(email=resp.json()["email"])
 
 @app.route('/import_documents', methods=['POST'])
 def import_documents():
+    if not google.authorified:
+        return redirect(url_for("google.login"))
+
     data = request.get_json()
 
     project_id = data.get('project_id')
@@ -28,10 +59,13 @@ def import_documents():
     data_store_id = data.get('data_store_id')
     branch_id = 0
     gcs_uri = data.get('gcs_uri')
+
     headers = {
-        "Authorization": f"Bearer {access_token}",
+        "Authorization": f"Bearer {google.token['access_token']}",
         "Content-Type": "application/json",
     }
+
+    # Rest of your code...
 
     if location == "us":
         url = f"https://us-discoveryengine.googleapis.com/v1alpha/projects/{project_id}/locations/{location}/collections/default_collection/dataStores/{data_store_id}/branches/{branch_id}/documents:import"
@@ -63,6 +97,8 @@ def import_documents():
 
 @app.route("/search_ai", methods=["POST"])
 def search_with_discovery_engine():
+    if not google.authorized:
+        return redirect(url_for("google.login"))
 
     data = request.get_json()
     query = data.get("query", "")
@@ -92,7 +128,7 @@ def search_with_discovery_engine():
 
 
     headers = {
-        "Authorization": f"Bearer {access_token}",
+        "Authorization": f"Bearer {google.token['access_token']}",
         "Content-Type": "application/json",
     }
 

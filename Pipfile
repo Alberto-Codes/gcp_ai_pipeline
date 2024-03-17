@@ -62,6 +62,9 @@ google-cloud-aiplatform = "*"
 google-cloud-discoveryengine = "*"
 beautifulsoup4 = "*"
 flask = "*"
+google = "*"
+flask-dance = "*"
+python-dotenv = "*"
 
 [dev-packages]
 black = "*"
