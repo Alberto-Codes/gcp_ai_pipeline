@@ -6,8 +6,6 @@ import requests
 import streamlit as st
 import streamlit.components.v1 as components
 
-from document_processing.datastore_refresh import import_documents_sample
-
 FLASK_BACKEND_SEARCH_URL = "http://localhost:5000/search_pdfs"
 FLASK_BACKEND_HANDLE_URL = "http://localhost:5000/handle_input"
 FLASK_BACKEND_URL = "http://localhost:5000"
@@ -108,18 +106,36 @@ def main():
             location = "us"
 
             st.write("Importing documents into Datastore...")
-            import_documents_sample(
-                project_id=project_id,
-                location=location,
-                data_store_id=os.getenv("SEARCH_PDF_DATA_STORE_ID"),
-                gcs_uri=pdf_bucket_gcs_uri,
+            # import documents into Datastore
+            import_search_payload = {
+                "project_id": os.getenv("GOOGLE_CLOUD_PROJECT"),
+                "location": "us",
+                "data_store_id": os.getenv("SEARCH_PDF_DATA_STORE_ID"),
+                "gcs_uri": pdf_bucket_gcs_uri,
+            }
+            headers = {"Content-Type": "application/json"}
+
+            import_pdf_response = requests.post(
+                FLASK_BACKEND_URL + "/import_documents",
+                data=json.dumps(import_search_payload),
+                headers=headers,
             )
-            import_documents_sample(
-                project_id=project_id,
-                location="global",
-                data_store_id=os.getenv("CHAT_PDF_DATA_STORE_ID"),
-                gcs_uri=pdf_bucket_gcs_uri,
+            st.markdown(import_pdf_response, unsafe_allow_html=True)
+
+            import_chat_payload = {
+                "project_id": project_id,
+                "location": "global",
+                "data_store_id": os.getenv("CHAT_PDF_DATA_STORE_ID"),
+                "gcs_uri": pdf_bucket_gcs_uri,
+            }
+            headers = {"Content-Type": "application/json"}
+
+            import_chat_response = requests.post(
+                FLASK_BACKEND_URL + "/import_documents",
+                data=json.dumps(import_chat_payload),
+                headers=headers,
             )
+            st.markdown(import_chat_response, unsafe_allow_html=True)
 
         default_search_query = f"What is the net zero target for {company_name}?"
         search_query = st.text_input(
@@ -127,10 +143,10 @@ def main():
         )
 
         if st.button("Search AI"):
-            payload = {
-                "project": project_id,
+            search_ai_payload = {
+                "project_id": os.getenv("GOOGLE_CLOUD_PROJECT"),
                 "location": "us",
-                "data_store": os.getenv("SEARCH_PDF_DATA_STORE_ID"),
+                "data_store_id": os.getenv("SEARCH_PDF_DATA_STORE_ID"),
                 "query": search_query,
                 "preamble": "You are a robot that always responds with a year",
             }
@@ -138,7 +154,7 @@ def main():
 
             response = requests.post(
                 FLASK_BACKEND_URL + "/search_ai",
-                data=json.dumps(payload),
+                data=json.dumps(search_ai_payload),
                 headers=headers,
             )
 

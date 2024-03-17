@@ -15,8 +15,61 @@ if not credentials.valid:
     if credentials.expired and credentials.refresh_token:
         credentials.refresh(Request())
 
+access_token = credentials.token
+
 app = Flask(__name__)
 
+@app.route('/import_documents', methods=['POST'])
+def import_documents():
+    data = request.get_json()
+
+    project_id = data.get('project_id')
+    location = data.get('location')
+    data_store_id = data.get('data_store_id')
+    # branch_id = data.get('branch_id')
+    branch_id = 0
+    gcs_uri = data.get('gcs_uri')
+
+    # credentials, project = default()
+
+    # if not credentials.valid:
+    #     if credentials.expired and credentials.refresh_token:
+    #         credentials.refresh(Request())
+
+
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+
+    if location == "us":
+        url = f"https://us-discoveryengine.googleapis.com/v1alpha/projects/{project_id}/locations/{location}/collections/default_collection/dataStores/{data_store_id}/branches/{branch_id}/documents:import"
+    else:
+        url = f"https://discoveryengine.googleapis.com/v1alpha/projects/{project_id}/locations/{location}/collections/default_collection/dataStores/{data_store_id}/branches/{branch_id}/documents:import"
+    body = {
+        "gcsSource": {
+            "input_uris": [gcs_uri],
+            "data_schema": "content"
+        },
+        "reconciliationMode": "INCREMENTAL",
+    }
+
+    response = requests.post(url, headers=headers, json=body)
+
+    if response.status_code == 200:
+        return jsonify(response.json())
+    else:
+        return (
+            jsonify(
+                {
+                    "error": "Request failed",
+                    "status_code": response.status_code,
+                    "message": response.text,
+                }
+            ),
+            response.status_code,
+        )
 
 @app.route("/search_ai", methods=["POST"])
 def search_with_discovery_engine():
@@ -24,10 +77,10 @@ def search_with_discovery_engine():
     data = request.get_json()
     query = data.get("query", "")
     preamble = data.get("preamble", "")
-    project = data.get("project")
+    project_id = data.get("project_id")
     location = data.get("location", "")
+    data_store_id = data.get("data_store_id", "")
 
-    data_store = data.get("data_store", "")
     payload = {
         "query": query,
         "pageSize": 10,
@@ -44,9 +97,9 @@ def search_with_discovery_engine():
             "snippetSpec": {"maxSnippetCount": 1, "returnSnippet": True},
         },
     }
-    url = f"https://us-discoveryengine.googleapis.com/v1alpha/projects/{project}/locations/{location}/collections/default_collection/dataStores/{data_store}/servingConfigs/default_search:search"
+    url = f"https://us-discoveryengine.googleapis.com/v1alpha/projects/{project_id}/locations/{location}/collections/default_collection/dataStores/{data_store_id}/servingConfigs/default_search:search"
 
-    access_token = credentials.token
+
 
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -77,7 +130,7 @@ def search_pdfs(company_name, api_key, search_engine_id):
         "key": api_key,
         "cx": search_engine_id,
         "q": query,
-        "num": 5,
+        "num": 10,
     }
     response = requests.get(search_url, params=params, timeout=5)
     response.raise_for_status()
