@@ -24,15 +24,10 @@ def ping():
 
 
 @app.route("/search_ai", methods=["POST"])
+@token_required
 def search_with_discovery_engine():
-    if not google.authorized:
-        return redirect(url_for("google.login"))
-
-    credentials_dict = session["credentials"]
-    credentials = Credentials.from_authorized_user_info(credentials_dict)
-
-    if credentials.expired:
-        credentials.refresh(Request())
+    auth_header = request.headers.get("Authorization")
+    token = auth_header.split(" ")[1] if auth_header else ""
 
     data = request.get_json()
     query = data.get("query", "")
@@ -60,7 +55,7 @@ def search_with_discovery_engine():
     url = f"https://us-discoveryengine.googleapis.com/v1alpha/projects/{project_id}/locations/{location}/collections/default_collection/dataStores/{data_store_id}/servingConfigs/default_search:search"
 
     headers = {
-        "Authorization": f"Bearer {google.token['access_token']}",
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
 
@@ -106,7 +101,6 @@ def token_required(f):
 def import_documents():
     auth_header = request.headers.get("Authorization")
     token = auth_header.split(" ")[1] if auth_header else ""
-    # credentials = Credentials.from_authorized_user_info(token)
 
     data = request.get_json()
 
