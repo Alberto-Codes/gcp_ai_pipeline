@@ -9,6 +9,7 @@ from flask_dance.consumer import oauth_authorized
 from flask_dance.contrib.google import google, make_google_blueprint
 from google.auth.transport.requests import Request
 from google.cloud import storage
+from oauthlib.oauth2.rfc6749.errors import InvalidClientIdError
 
 load_dotenv()
 
@@ -33,17 +34,19 @@ if (
     exit(1)
 
 
-
+# Create the Google blueprint
 google_bp = make_google_blueprint(
     client_id=credentials["client_id"],
     client_secret=credentials["client_secret"],
     scope=["https://www.googleapis.com/auth/cloud-platform", "profile", "email"],
     offline=True,
-    reprompt_consent=True
+    reprompt_consent=True,
+    redirect_to=url_for("google_logged_in", _external=True),
 )
 
 # Register the blueprint with the Flask application
 app.register_blueprint(google_bp, url_prefix="/login")
+
 
 @oauth_authorized.connect_via(google_bp)
 def google_logged_in(blueprint, token):
@@ -51,22 +54,27 @@ def google_logged_in(blueprint, token):
         flash("Failed to log in with Google.", category="error")
         return redirect(url_for("index"))
 
-    resp = google.get("/oauth2/v1/userinfo")
-    if resp.ok:
-        session["user_info"] = resp.json()
-        return redirect(url_for("index"))
-    else:
-        flash("Failed to fetch user info from Google.", category="error")
+    try:
+        resp = google.get("/oauth2/v1/userinfo")
+        if resp.ok:
+            session["user_info"] = resp.json()
+            return redirect(url_for("index"))
+        else:
+            flash("Failed to fetch user info from Google.", category="error")
+            return redirect(url_for("index"))
+    except InvalidClientIdError:
+        flash("Invalid client ID.", category="error")
         return redirect(url_for("index"))
 
-@app.route('/')
+
+@app.route("/")
 def index():
     if not google.authorized:
         return redirect(url_for("google.login"))
     user_info = session.get("user_info")
     if user_info:
         return jsonify(user_info)
-    return 'You are not currently logged in.'
+    return "You are not currently logged in."
 
 
 @app.route("/login/google/authorized")
