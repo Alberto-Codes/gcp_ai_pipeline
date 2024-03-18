@@ -1,20 +1,20 @@
 import json
 import os
+from functools import wraps
 
 import flask
 import google.oauth2.credentials
 import requests
 from flask import Flask, jsonify, redirect, request, session, url_for
+from flask_talisman import Talisman
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
-from flask_talisman import Talisman
 
 app = Flask(__name__)
 Talisman(app)
 app.config.update({"PREFERRED_URL_SCHEME": "https"})
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "DEFAULT_SECRET_KEY")
-
 
 
 # add ping end point
@@ -23,16 +23,90 @@ def ping():
     return "pong"
 
 
-@app.route("/import_documents", methods=["POST"])
-def import_documents():
-    if "credentials" not in session:
-        return redirect(url_for("login"))
+@app.route("/search_ai", methods=["POST"])
+def search_with_discovery_engine():
+    if not google.authorized:
+        return redirect(url_for("google.login"))
 
     credentials_dict = session["credentials"]
     credentials = Credentials.from_authorized_user_info(credentials_dict)
 
     if credentials.expired:
         credentials.refresh(Request())
+
+    data = request.get_json()
+    query = data.get("query", "")
+    preamble = data.get("preamble", "")
+    project_id = data.get("project_id")
+    location = data.get("location", "")
+    data_store_id = data.get("data_store_id", "")
+
+    payload = {
+        "query": query,
+        "pageSize": 10,
+        "queryExpansionSpec": {"condition": "AUTO"},
+        "spellCorrectionSpec": {"mode": "AUTO"},
+        "contentSearchSpec": {
+            "summarySpec": {
+                "summaryResultCount": 5,
+                "modelPromptSpec": {"preamble": preamble},
+                "modelSpec": {"version": "preview"},
+                "ignoreAdversarialQuery": True,
+                "includeCitations": True,
+            },
+            "snippetSpec": {"maxSnippetCount": 1, "returnSnippet": True},
+        },
+    }
+    url = f"https://us-discoveryengine.googleapis.com/v1alpha/projects/{project_id}/locations/{location}/collections/default_collection/dataStores/{data_store_id}/servingConfigs/default_search:search"
+
+    headers = {
+        "Authorization": f"Bearer {google.token['access_token']}",
+        "Content-Type": "application/json",
+    }
+
+    response = requests.post(url, headers=headers, json=payload)
+
+    if response.status_code == 200:
+        return jsonify(response.json())
+    else:
+        return (
+            jsonify(
+                {
+                    "error": "Request failed",
+                    "status_code": response.status_code,
+                    "message": response.text,
+                }
+            ),
+            response.status_code,
+        )
+
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        if "Authorization" in request.headers:
+            token = request.headers["Authorization"]
+            token = token.split(" ")[1] if token.startswith("Bearer ") else None
+
+        if not token:
+            return jsonify({"message": "Token is missing!"}), 401
+
+        # Here you would typically check if the token is valid.
+        # This could involve decoding it and checking if it's in a list of valid tokens,
+        # checking if it's expired, etc. This depends on how you're managing tokens.
+
+        return f(*args, **kwargs)
+
+    return decorated
+
+
+@app.route("/import_documents", methods=["POST"])
+@token_required
+def import_documents():
+    auth_header = request.headers.get("Authorization")
+    token = auth_header.split(" ")[1] if auth_header else ""
+    # credentials = Credentials.from_authorized_user_info(token)
 
     data = request.get_json()
 
@@ -43,7 +117,7 @@ def import_documents():
     gcs_uri = data.get("gcs_uri")
 
     headers = {
-        "Authorization": f"Bearer {credentials.token}",
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
 
@@ -85,7 +159,7 @@ def login():
             "openid",
             "https://www.googleapis.com/auth/userinfo.email",
             "https://www.googleapis.com/auth/cloud-platform",
-            "https://www.googleapis.com/auth/userinfo.profile"
+            "https://www.googleapis.com/auth/userinfo.profile",
         ],
         redirect_uri=url_for("oauth2callback", _external=True, _scheme="https"),
     )
@@ -114,14 +188,14 @@ def oauth2callback():
             "openid",
             "https://www.googleapis.com/auth/userinfo.email",
             "https://www.googleapis.com/auth/cloud-platform",
-            "https://www.googleapis.com/auth/userinfo.profile"
+            "https://www.googleapis.com/auth/userinfo.profile",
         ],
         state=state,
         redirect_uri=url_for("oauth2callback", _external=True, _scheme="https"),
     )
 
     authorization_response = request.url
-    authorization_response = authorization_response.replace('http://', 'https://')
+    authorization_response = authorization_response.replace("http://", "https://")
     flow.fetch_token(authorization_response=authorization_response)
 
     credentials = flow.credentials
@@ -200,6 +274,10 @@ def print_index_table():
         + '<tr><td><a href="/ping">Ping the server</a></td>'
         + "<td>Check if the server is alive. If the server is running, "
         + "    you should get a 'Pong!' response."
+        + "</td></tr>"
+        + '<tr><td><a href="/search_ai">Search with AI</a></td>'
+        + "<td>Submit a search query to the AI Discovery Engine. "
+        + "    You need to be authorized and provide a JSON payload with the search parameters."
         + "</td></tr></table>"
     )
 

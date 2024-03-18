@@ -71,6 +71,7 @@ flask-talisman = "*"
 [dev-packages]
 black = "*"
 isort = "*"
+vulture = "*"
 
 [requires]
 python_version = "3.12"
