@@ -1,3 +1,4 @@
+import csv
 import json
 import os
 from functools import wraps
@@ -15,6 +16,7 @@ app = Flask(__name__)
 Talisman(app)
 app.config.update({"PREFERRED_URL_SCHEME": "https"})
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "DEFAULT_SECRET_KEY")
+
 
 def token_required(f):
     @wraps(f)
@@ -34,6 +36,78 @@ def token_required(f):
         return f(*args, **kwargs)
 
     return decorated
+
+
+@app.route(
+    "/esg/benchmark/upload/<entityName>/<esgType>/<esgIndicator>", methods=["POST"]
+)
+@token_required
+def upload_esg_benchmark(entityName, esgType, esgIndicator):
+    # Assuming 'parameters.csv' is structured with 'entityName,esgType,esgIndicator,preamble,query' headers
+    with open("parameters.csv", mode="r", encoding="utf-8") as csv_file:
+        csv_reader = csv.DictReader(csv_file)
+        for row in csv_reader:
+            if row["esgType"] == esgType and row["esgIndicator"] == esgIndicator:
+                preamble = row["preamble"]
+                query = row["query"].format(entityName=entityName)
+                break
+        else:
+            return (
+                jsonify(
+                    {
+                        "error": "Parameters not found for given esgType, and esgIndicator"
+                    }
+                ),
+                404,
+            )
+
+    auth_header = request.headers.get("Authorization")
+    token = auth_header.split(" ")[1] if auth_header else ""
+
+    data = request.get_json()
+    project_id = data.get("project_id")
+    location = data.get("location", "")
+    data_store_id = data.get("data_store_id", "")
+
+    payload = {
+        "query": query,
+        "pageSize": 10,
+        "queryExpansionSpec": {"condition": "AUTO"},
+        "spellCorrectionSpec": {"mode": "AUTO"},
+        "contentSearchSpec": {
+            "summarySpec": {
+                "summaryResultCount": 5,
+                "modelPromptSpec": {"preamble": preamble},
+                "modelSpec": {"version": "preview"},
+                "ignoreAdversarialQuery": True,
+                "includeCitations": True,
+            },
+            "snippetSpec": {"maxSnippetCount": 1, "returnSnippet": True},
+        },
+    }
+    url = f"https://us-discoveryengine.googleapis.com/v1alpha/projects/{project_id}/locations/{location}/collections/default_collection/dataStores/{data_store_id}/servingConfigs/default_search:search"
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+
+    response = requests.post(url, headers=headers, json=payload)
+
+    if response.status_code == 200:
+        return jsonify(response.json())
+    else:
+        return (
+            jsonify(
+                {
+                    "error": "Request failed",
+                    "status_code": response.status_code,
+                    "message": response.text,
+                }
+            ),
+            response.status_code,
+        )
+
 
 # add ping end point
 @app.route("/ping")
@@ -92,9 +166,6 @@ def search_with_discovery_engine():
             ),
             response.status_code,
         )
-
-
-
 
 
 @app.route("/import_documents", methods=["POST"])
