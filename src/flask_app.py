@@ -74,7 +74,12 @@ def login():
 
     flow = Flow.from_client_config(
         credentials,
-        scopes=["https://www.googleapis.com/auth/cloud-platform", "profile", "email"],
+        scopes=[
+            "openid",
+            "https://www.googleapis.com/auth/userinfo.email",
+            "https://www.googleapis.com/auth/cloud-platform",
+            "https://www.googleapis.com/auth/userinfo.profile"
+        ],
         redirect_uri=url_for("oauth2callback", _external=True, _scheme="https"),
     )
 
@@ -98,7 +103,12 @@ def oauth2callback():
 
     flow = Flow.from_client_config(
         credentials,
-        scopes=["https://www.googleapis.com/auth/cloud-platform", "profile", "email"],
+        scopes=[
+            "openid",
+            "https://www.googleapis.com/auth/userinfo.email",
+            "https://www.googleapis.com/auth/cloud-platform",
+            "https://www.googleapis.com/auth/userinfo.profile"
+        ],
         state=state,
         redirect_uri=url_for("oauth2callback", _external=True, _scheme="https"),
     )
