@@ -8,6 +8,7 @@ import streamlit.components.v1 as components
 
 FLASK_BACKEND_URL = os.getenv("FLASK_BACKEND_URL")
 
+
 def fetch_pdf_urls(company_name, api_key, search_engine_id):
     params = {
         "company_name": company_name,
