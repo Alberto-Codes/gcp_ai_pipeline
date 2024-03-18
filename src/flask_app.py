@@ -98,7 +98,7 @@ def oauth2callback():
         credentials,
         scopes=["https://www.googleapis.com/auth/cloud-platform", "profile", "email"],
         state=state,
-        redirect_uri=url_for("oauth2callback", _external=True),
+        redirect_uri=url_for("oauth2callback", _external=True, _scheme="https"),
     )
 
     authorization_response = request.url
