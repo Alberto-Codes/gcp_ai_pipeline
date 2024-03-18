@@ -18,12 +18,12 @@ import streamlit.components.v1 as components
 def search_pdfs(company_name, api_key, search_engine_id):
     search_url = "https://www.googleapis.com/customsearch/v1"
     # Include 'ESG' and 'environmental social governance' in the query
-    query = f"{company_name} ESG OR environmental social governance filetype:pdf"
+    query = f"{company_name} ESG environmental social governance MSCI sustainalytics SBTi CDP GRI SASB TCFD Assurance filetype:pdf"
     params = {
         "key": api_key,
         "cx": search_engine_id,
         "q": query,
-        "num": 5,  # Number of search results to return
+        "num": 10,  # Number of search results to return
     }
     response = requests.get(search_url, params=params, timeout=5)
     response.raise_for_status()
