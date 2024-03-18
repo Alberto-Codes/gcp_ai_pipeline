@@ -139,15 +139,18 @@ def upload_esg_benchmark(entityName, esgType, esgIndicator):
     # Process the API response
     if response.status_code == 200:
         api_response = response.json()
+        summaryText = api_response.get("summary", {}).get("summaryText", "")
+        citationDetails = api_response["results"][0]["document"]["link"]
+        
 
         # Extract and transform data from the response
         benchmark_details = {
             "question": query,
             "esgType": esgType,
             "esgIndicators": esgIndicator,
-            "primaryDetails": "",
+            "primaryDetails": summaryText,
             "secondaryDetails": [],
-            "citationDetails": "",
+            "citationDetails": citationDetails,
             "pageNumber": 1,  # This is a placeholder
         }
 
@@ -156,14 +159,14 @@ def upload_esg_benchmark(entityName, esgType, esgIndicator):
             # For simplicity, this example uses the first document
             first_result = api_response["results"][0]["document"]
             derived_struct_data = first_result["derivedStructData"]
-
-            benchmark_details["primaryDetails"] = derived_struct_data["title"]
             benchmark_details["secondaryDetails"] = [
                 snippet["snippet"] for snippet in derived_struct_data["snippets"]
             ]
-            benchmark_details["citationDetails"] = derived_struct_data["link"]
+            # benchmark_details["citationDetails"] = derived_struct_data["link"]
             # pageNumber could be dynamically determined based on document content
-            timeTaken = end_time = time.time()
+             
+            end_time = time.time()
+            time_taken = end_time-start_time
         # Prepare the final JSON response
         response_payload = {
             "entityName": entityName,
@@ -171,7 +174,7 @@ def upload_esg_benchmark(entityName, esgType, esgIndicator):
                 benchmark_details
             ],  # Note: Adjusted to a list to match the expected array type
             "Metrics": {
-                "timeTaken": timeTaken,  # Placeholder, should be calculated based on your logic
+                "timeTaken": time_taken,  # Placeholder, should be calculated based on your logic
                 "dataStore": data_store_id,  # Example, adjust as needed
                 "f1Score": "f1Score not available",  # Placeholder, should be calculated based on your logic
             },
