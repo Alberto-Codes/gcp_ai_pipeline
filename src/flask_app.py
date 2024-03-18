@@ -41,8 +41,7 @@ google_bp = make_google_blueprint(
     scope=["https://www.googleapis.com/auth/cloud-platform", "profile", "email"],
     offline=True,
     reprompt_consent=True,
-    redirect_to=url_for("google_logged_in", _external=True),
-    redirect_url=lambda: url_for("google_logged_in", _external=True),
+    redirect_to="google_logged_in",
 )
 
 # Register the blueprint with the Flask application
