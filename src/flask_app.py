@@ -4,13 +4,65 @@ import os
 import flask
 import google.oauth2.credentials
 import requests
-from flask import Flask, redirect, request, session, url_for
+from flask import Flask, jsonify, redirect, request, session, url_for
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "DEFAULT_SECRET_KEY")
 
+@app.route("/import_documents", methods=["POST"])
+def import_documents():
+    if "credentials" not in session:
+        return redirect(url_for("login"))
+
+    credentials_dict = session["credentials"]
+    credentials = Credentials.from_authorized_user_info(credentials_dict)
+
+    if credentials.expired:
+        credentials.refresh(Request())
+
+    data = request.get_json()
+
+    project_id = data.get("project_id")
+    location = data.get("location")
+    data_store_id = data.get("data_store_id")
+    branch_id = 0
+    gcs_uri = data.get("gcs_uri")
+
+    headers = {
+        "Authorization": f"Bearer {credentials.token}",
+        "Content-Type": "application/json",
+    }
+
+    # Rest of your code...
+
+    if location == "us":
+        url = f"https://us-discoveryengine.googleapis.com/v1alpha/projects/{project_id}/locations/{location}/collections/default_collection/dataStores/{data_store_id}/branches/{branch_id}/documents:import"
+    else:
+        url = f"https://discoveryengine.googleapis.com/v1alpha/projects/{project_id}/locations/{location}/collections/default_collection/dataStores/{data_store_id}/branches/{branch_id}/documents:import"
+    body = {
+        "gcsSource": {"input_uris": [gcs_uri], "data_schema": "content"},
+        "reconciliationMode": "INCREMENTAL",
+    }
+
+    response = requests.post(url, headers=headers, json=body)
+
+    if response.status_code == 200:
+        return jsonify(response.json())
+    else:
+        return (
+            jsonify(
+                {
+                    "error": "Request failed",
+                    "status_code": response.status_code,
+                    "message": response.text,
+                }
+            ),
+            response.status_code,
+        )
 
 @app.route("/login")
 def login():
@@ -19,7 +71,7 @@ def login():
     flow = Flow.from_client_config(
         credentials,
         scopes=["https://www.googleapis.com/auth/cloud-platform", "profile", "email"],
-        redirect_uri=url_for("oauth2callback", _external=True),
+        redirect_uri=url_for("oauth2callback", _external=False),
     )
 
     # Corrected authorization_url call
