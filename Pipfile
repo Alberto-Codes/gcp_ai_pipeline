@@ -6,7 +6,7 @@ name = "pypi"
 [packages]
 altair = "==5.2.0"
 attrs = "==23.2.0"
-blinker = "==1.7.0"
+blinker = "*"
 cachetools = "==5.3.3"
 certifi = "==2024.2.2"
 charset-normalizer = "==3.3.2"
@@ -65,6 +65,7 @@ flask = "*"
 google = "*"
 flask-dance = "*"
 python-dotenv = "*"
+requests-oauthlib = "*"
 
 [dev-packages]
 black = "*"
