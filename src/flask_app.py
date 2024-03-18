@@ -10,6 +10,7 @@ import requests
 from flask import Flask, jsonify, redirect, request, session, url_for
 from flask_talisman import Talisman
 from google.auth.transport.requests import Request
+from google.cloud import storage
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 
@@ -30,13 +31,52 @@ def token_required(f):
         if not token:
             return jsonify({"message": "Token is missing!"}), 401
 
-        # Here you would typically check if the token is valid.
-        # This could involve decoding it and checking if it's in a list of valid tokens,
-        # checking if it's expired, etc. This depends on how you're managing tokens.
+        # Validate the token
+        r = requests.get("https://oauth2.googleapis.com/tokeninfo?id_token=" + token)
+        if r.status_code != 200:
+            return jsonify({"message": "Token is invalid!"}), 401
 
         return f(*args, **kwargs)
 
     return decorated
+
+
+@app.route("/esg/benchmark/upload/<entityName>", methods=["POST"])
+@token_required
+def upload_esg_document(entityName):
+    if "documentUpload" not in request.files:
+        return jsonify({"error": "No file part"}), 400
+
+    file = request.files["documentUpload"]
+    if file.filename == "":
+        return jsonify({"error": "No selected file"}), 400
+
+    bucket_name = os.getenv("PDF_BUCKET_NAME")
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+
+    file_name = file.filename
+    blob = bucket.blob(
+        file_name
+    )  # Store directly in the bucket root, not in a directory
+
+    response_data = {
+        "entityName": entityName,
+        "uploaded": [],
+        "already_exists": [],
+        "failed": [],
+    }
+
+    if blob.exists():
+        response_data["already_exists"].append(file_name)
+    else:
+        try:
+            blob.upload_from_file(file, content_type="application/pdf")
+            response_data["uploaded"].append(file_name)
+        except Exception as e:
+            response_data["failed"].append((file_name, str(e)))
+
+    return jsonify(response_data)
 
 
 @app.route(
