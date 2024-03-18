@@ -46,14 +46,17 @@ def upload_esg_document(entityName):
     if file.filename == "":
         return jsonify({"error": "No selected file"}), 400
 
+    # Validate file type here
+    if not file.filename.endswith(".pdf"):
+        return jsonify({"error": "File is not a PDF"}), 400
+
     bucket_name = os.getenv("PDF_BUCKET_NAME")
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
 
-    file_name = file.filename
-    blob = bucket.blob(
-        file_name
-    )  # Store directly in the bucket root, not in a directory
+    # Modify file_name to include entityName for organized storage
+    file_name = f"{entityName}/{file.filename}"  # Dynamic path based on entityName
+    blob = bucket.blob(file_name)
 
     response_data = {
         "entityName": entityName,
@@ -72,6 +75,9 @@ def upload_esg_document(entityName):
             response_data["failed"].append((file_name, str(e)))
 
     return jsonify(response_data)
+
+
+# Replace @token_required with your actual token verification decorator
 
 
 @app.route(
