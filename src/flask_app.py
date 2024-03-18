@@ -5,13 +5,14 @@ import flask
 import google.oauth2.credentials
 import requests
 from flask import Flask, jsonify, redirect, request, session, url_for
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import Flow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import Flow
 
 app = Flask(__name__)
+app.config.update({"PREFERRED_URL_SCHEME": "https"})
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "DEFAULT_SECRET_KEY")
+
 
 @app.route("/import_documents", methods=["POST"])
 def import_documents():
@@ -64,6 +65,7 @@ def import_documents():
             response.status_code,
         )
 
+
 @app.route("/login")
 def login():
     credentials = json.loads(os.environ["OAUTH_CREDENTIALS"])
@@ -71,7 +73,7 @@ def login():
     flow = Flow.from_client_config(
         credentials,
         scopes=["https://www.googleapis.com/auth/cloud-platform", "profile", "email"],
-        redirect_uri=url_for("oauth2callback", _external=True),
+        redirect_uri=url_for("oauth2callback", _external=True, _scheme="https"),
     )
 
     # Corrected authorization_url call
