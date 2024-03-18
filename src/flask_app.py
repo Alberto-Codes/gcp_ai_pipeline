@@ -92,8 +92,7 @@ def login():
 def oauth2callback():
     state = session["state"]
 
-    credentials_json = json.loads(os.environ["OAUTH_CREDENTIALS"])
-    credentials = credentials_json.get("web", {})
+    credentials = json.loads(os.environ["OAUTH_CREDENTIALS"])
 
     flow = Flow.from_client_config(
         credentials,
@@ -160,23 +159,23 @@ def credentials_to_dict(credentials):
 def print_index_table():
     return (
         "<table>"
-        + '<tr><td><a href="/test">Test an API request</a></td>'
-        + "<td>Submit an API request and see a formatted JSON response. "
+        + '<tr><td><a href="/import_documents">Import documents</a></td>'
+        + "<td>Submit an API request to import documents. "
         + "    Go through the authorization flow if there are no stored "
         + "    credentials for the user.</td></tr>"
-        + '<tr><td><a href="/authorize">Test the auth flow directly</a></td>'
+        + '<tr><td><a href="/login">Start the auth flow</a></td>'
         + "<td>Go directly to the authorization flow. If there are stored "
         + "    credentials, you still might not be prompted to reauthorize "
         + "    the application.</td></tr>"
         + '<tr><td><a href="/revoke">Revoke current credentials</a></td>'
         + "<td>Revoke the access token associated with the current user "
-        + "    session. After revoking credentials, if you go to the test "
+        + "    session. After revoking credentials, if you go to the import documents "
         + "    page, you should see an <code>invalid_grant</code> error."
         + "</td></tr>"
         + '<tr><td><a href="/clear">Clear Flask session credentials</a></td>'
         + "<td>Clear the access token currently stored in the user session. "
-        + '    After clearing the token, if you <a href="/test">test the '
-        + "    API request</a> again, you should go back to the auth flow."
+        + '    After clearing the token, if you <a href="/import_documents">import documents</a> '
+        + "    again, you should go back to the auth flow."
         + "</td></tr></table>"
     )
 
