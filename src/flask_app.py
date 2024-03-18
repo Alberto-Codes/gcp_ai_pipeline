@@ -140,7 +140,7 @@ def upload_esg_benchmark(entityName, esgType, esgIndicator):
     if response.status_code == 200:
         api_response = response.json()
         summaryText = api_response.get("summary", {}).get("summaryText", "")
-        citationDetails = api_response["results"][0]["document"]["link"]
+        citationDetails = api_response["results"][0]["document"]["derivedStructData"]["link"]
         
 
         # Extract and transform data from the response
@@ -150,7 +150,7 @@ def upload_esg_benchmark(entityName, esgType, esgIndicator):
             "esgIndicators": esgIndicator,
             "primaryDetails": summaryText,
             "secondaryDetails": [],
-            "citationDetails": citationDetails,
+            "citationDetails": citationDetails.replace('gs://', 'https://storage.cloud.google.com/'),
             "pageNumber": 1,  # This is a placeholder
         }
 
