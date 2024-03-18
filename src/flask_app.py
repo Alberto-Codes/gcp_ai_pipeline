@@ -31,11 +31,6 @@ def token_required(f):
         if not token:
             return jsonify({"message": "Token is missing!"}), 401
 
-        # Validate the token
-        r = requests.get("https://oauth2.googleapis.com/tokeninfo?id_token=" + token)
-        if r.status_code != 200:
-            return jsonify({"message": "Token is invalid!"}), 401
-
         return f(*args, **kwargs)
 
     return decorated
