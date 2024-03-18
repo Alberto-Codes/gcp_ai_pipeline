@@ -16,6 +16,13 @@ app.config.update({"PREFERRED_URL_SCHEME": "https"})
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "DEFAULT_SECRET_KEY")
 
 
+
+# add ping end point
+@app.route("/ping")
+def ping():
+    return "pong"
+
+
 @app.route("/import_documents", methods=["POST"])
 def import_documents():
     if "credentials" not in session:
@@ -189,6 +196,10 @@ def print_index_table():
         + "<td>Clear the access token currently stored in the user session. "
         + '    After clearing the token, if you <a href="/import_documents">import documents</a> '
         + "    again, you should go back to the auth flow."
+        + "</td></tr>"
+        + '<tr><td><a href="/ping">Ping the server</a></td>'
+        + "<td>Check if the server is alive. If the server is running, "
+        + "    you should get a 'Pong!' response."
         + "</td></tr></table>"
     )
 
