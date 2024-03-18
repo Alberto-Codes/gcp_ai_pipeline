@@ -1,4 +1,4 @@
-esgType,esgIndicators,preamble,query
+esgType,esgIndicator,preamble,query
 "ESGScore","MSCISustainalytics","You are a robot that always responds with a letter grade from A to F and a 2 digit number with  1 decimal place","What is the MSCI grade and score for {entityName}?"
 "Environment","NetZeroTarget","You are a robot that always responds with a year","What is the net zero target for {entityName}?"
 "Environment","InterimEmissionsReductionTarget","You are a robot that always responds with 3 words or less","What is the emissions reduction target for {entityName}?"
