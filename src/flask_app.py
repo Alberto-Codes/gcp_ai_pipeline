@@ -1,6 +1,7 @@
 import csv
 import json
 import os
+import time
 from functools import wraps
 
 import flask
@@ -43,6 +44,7 @@ def token_required(f):
 )
 @token_required
 def upload_esg_benchmark(entityName, esgType, esgIndicator):
+    start_time = time.time()
     # Assuming 'parameters.csv' is structured with 'entityName,esgType,esgIndicator,preamble,query' headers
     with open("parameters.csv", mode="r", encoding="utf-8") as csv_file:
         csv_reader = csv.DictReader(csv_file)
@@ -93,17 +95,53 @@ def upload_esg_benchmark(entityName, esgType, esgIndicator):
     }
 
     response = requests.post(url, headers=headers, json=payload)
-
+    # Process the API response
     if response.status_code == 200:
-        return jsonify(response.json())
+        api_response = response.json()
+
+        # Extract and transform data from the response
+        benchmark_details = {
+            "question": query,
+            "esgType": esgType,
+            "esgIndicators": esgIndicator,
+            "primaryDetails": "",
+            "secondaryDetails": [],
+            "citationDetails": "",
+            "pageNumber": 1,  # This is a placeholder
+        }
+
+        if api_response.get("results"):
+            # If there are multiple documents, you might want to aggregate them differently
+            # For simplicity, this example uses the first document
+            first_result = api_response["results"][0]["document"]
+            derived_struct_data = first_result["derivedStructData"]
+
+            benchmark_details["primaryDetails"] = derived_struct_data["title"]
+            benchmark_details["secondaryDetails"] = [
+                snippet["snippet"] for snippet in derived_struct_data["snippets"]
+            ]
+            benchmark_details["citationDetails"] = derived_struct_data["link"]
+            # pageNumber could be dynamically determined based on document content
+            timeTaken = end_time = time.time()
+        # Prepare the final JSON response
+        response_payload = {
+            "entityName": entityName,
+            "benchmarkDetails": [
+                benchmark_details
+            ],  # Note: Adjusted to a list to match the expected array type
+            "Metrics": {
+                "timeTaken": timeTaken,  # Placeholder, should be calculated based on your logic
+                "dataStore": data_store_id,  # Example, adjust as needed
+                "f1Score": "f1Score not available",  # Placeholder, should be calculated based on your logic
+            },
+        }
+
+        return jsonify(response_payload), 200
     else:
+        # Handle errors or unsuccessful responses
         return (
             jsonify(
-                {
-                    "error": "Request failed",
-                    "status_code": response.status_code,
-                    "message": response.text,
-                }
+                {"error": "Failed to fetch data", "status_code": response.status_code}
             ),
             response.status_code,
         )
