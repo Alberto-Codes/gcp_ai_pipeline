@@ -71,7 +71,7 @@ def login():
     flow = Flow.from_client_config(
         credentials,
         scopes=["https://www.googleapis.com/auth/cloud-platform", "profile", "email"],
-        redirect_uri=url_for("oauth2callback", _external=False),
+        redirect_uri=url_for("oauth2callback", _external=True),
     )
 
     # Corrected authorization_url call
