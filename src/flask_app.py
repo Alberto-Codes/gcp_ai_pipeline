@@ -11,8 +11,7 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "DEFAULT_SECRET_KEY")
 
 @app.route("/login")
 def login():
-    credentials_json = json.loads(os.environ["OAUTH_CREDENTIALS"])
-    credentials = credentials_json.get("web", {})
+    credentials = json.loads(os.environ["OAUTH_CREDENTIALS"])
 
     flow = Flow.from_client_config(
         credentials,
