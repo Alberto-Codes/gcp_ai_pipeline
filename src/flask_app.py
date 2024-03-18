@@ -104,7 +104,8 @@ def oauth2callback():
     )
 
     authorization_response = request.url
-    flow.fetch_token(authorization_response=authorization_response, _scheme="https")
+    authorization_response = authorization_response.replace('http://', 'https://')
+    flow.fetch_token(authorization_response=authorization_response)
 
     credentials = flow.credentials
     session["credentials"] = credentials_to_dict(credentials)
