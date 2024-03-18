@@ -33,6 +33,10 @@
 	// "forwardPorts": [],
 	"forwardPorts": [8501, 5678, 5000],
 
+	// ...
+	"runArgs": ["--env-file", ".env"],
+	// ...
+
 	// Use 'postCreateCommand' to run commands after the container is created.
 	"postCreateCommand": "pip3 install --user -r requirements.txt"
 

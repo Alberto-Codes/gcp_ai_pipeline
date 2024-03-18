@@ -3,45 +3,104 @@ import os
 
 import requests
 from bs4 import BeautifulSoup
-from flask import Flask, jsonify, request
-from google.auth import default
+from dotenv import load_dotenv
+from flask import Flask, flash, jsonify, redirect, request, session, url_for
+from flask_dance.consumer import oauth_authorized
+from flask_dance.contrib.google import google, make_google_blueprint
 from google.auth.transport.requests import Request
 from google.cloud import storage
 
-credentials, project = default()
-
-
-if not credentials.valid:
-    if credentials.expired and credentials.refresh_token:
-        credentials.refresh(Request())
-
-access_token = credentials.token
+load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "DEFAULT_SECRET_KEY")
 
-@app.route('/import_documents', methods=['POST'])
+try:
+    credentials_json = json.loads(os.environ["OAUTH_CREDENTIALS"])
+    credentials = credentials_json.get("web", {})
+except json.JSONDecodeError:
+    print("Error: Failed to parse OAUTH_CREDENTIALS. Ensure it's valid JSON.")
+    exit(1)
+
+if (
+    not credentials
+    or not credentials.get("client_id")
+    or not credentials.get("client_secret")
+):
+    print(
+        "Error: Invalid credentials. Make sure your OAUTH_CREDENTIALS contain 'web' object with 'client_id' and 'client_secret'."
+    )
+    exit(1)
+
+
+
+google_bp = make_google_blueprint(
+    client_id=credentials["client_id"],
+    client_secret=credentials["client_secret"],
+    scope=["https://www.googleapis.com/auth/cloud-platform", "profile", "email"],
+    offline=True,
+    reprompt_consent=True
+)
+
+# Register the blueprint with the Flask application
+app.register_blueprint(google_bp, url_prefix="/login")
+
+@oauth_authorized.connect_via(google_bp)
+def google_logged_in(blueprint, token):
+    if not token:
+        flash("Failed to log in with Google.", category="error")
+        return redirect(url_for("index"))
+
+    resp = google.get("/oauth2/v1/userinfo")
+    if resp.ok:
+        session["user_info"] = resp.json()
+        return redirect(url_for("index"))
+    else:
+        flash("Failed to fetch user info from Google.", category="error")
+        return redirect(url_for("index"))
+
+@app.route('/')
+def index():
+    if not google.authorized:
+        return redirect(url_for("google.login"))
+    user_info = session.get("user_info")
+    if user_info:
+        return jsonify(user_info)
+    return 'You are not currently logged in.'
+
+
+@app.route("/login/google/authorized")
+def google_authorized():
+    # Redirect to the dynamically set URL or a default
+    return redirect(session.get("next_url", url_for("index")))
+
+
+@app.route("/import_documents", methods=["POST"])
 def import_documents():
+    if not google.authorized:
+        return redirect(url_for("google.login"))
+
     data = request.get_json()
 
-    project_id = data.get('project_id')
-    location = data.get('location')
-    data_store_id = data.get('data_store_id')
+    project_id = data.get("project_id")
+    location = data.get("location")
+    data_store_id = data.get("data_store_id")
     branch_id = 0
-    gcs_uri = data.get('gcs_uri')
+    gcs_uri = data.get("gcs_uri")
+
     headers = {
-        "Authorization": f"Bearer {access_token}",
+        "Authorization": f"Bearer {google.token['access_token']}",
         "Content-Type": "application/json",
     }
+
+    # Rest of your code...
 
     if location == "us":
         url = f"https://us-discoveryengine.googleapis.com/v1alpha/projects/{project_id}/locations/{location}/collections/default_collection/dataStores/{data_store_id}/branches/{branch_id}/documents:import"
     else:
         url = f"https://discoveryengine.googleapis.com/v1alpha/projects/{project_id}/locations/{location}/collections/default_collection/dataStores/{data_store_id}/branches/{branch_id}/documents:import"
     body = {
-        "gcsSource": {
-            "input_uris": [gcs_uri],
-            "data_schema": "content"
-        },
+        "gcsSource": {"input_uris": [gcs_uri], "data_schema": "content"},
         "reconciliationMode": "INCREMENTAL",
     }
 
@@ -61,8 +120,11 @@ def import_documents():
             response.status_code,
         )
 
+
 @app.route("/search_ai", methods=["POST"])
 def search_with_discovery_engine():
+    if not google.authorized:
+        return redirect(url_for("google.login"))
 
     data = request.get_json()
     query = data.get("query", "")
@@ -89,10 +151,8 @@ def search_with_discovery_engine():
     }
     url = f"https://us-discoveryengine.googleapis.com/v1alpha/projects/{project_id}/locations/{location}/collections/default_collection/dataStores/{data_store_id}/servingConfigs/default_search:search"
 
-
-
     headers = {
-        "Authorization": f"Bearer {access_token}",
+        "Authorization": f"Bearer {google.token['access_token']}",
         "Content-Type": "application/json",
     }
 
@@ -237,6 +297,6 @@ def handle_input():
     )
 
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
