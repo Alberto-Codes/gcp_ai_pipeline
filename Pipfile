@@ -66,6 +66,7 @@ google = "*"
 flask-dance = "*"
 python-dotenv = "*"
 requests-oauthlib = "*"
+flask-talisman = "*"
 
 [dev-packages]
 black = "*"

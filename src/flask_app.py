@@ -8,8 +8,10 @@ from flask import Flask, jsonify, redirect, request, session, url_for
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
+from flask_talisman import Talisman
 
 app = Flask(__name__)
+Talisman(app)
 app.config.update({"PREFERRED_URL_SCHEME": "https"})
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "DEFAULT_SECRET_KEY")
 
@@ -17,7 +19,7 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "DEFAULT_SECRET_KEY")
 @app.route("/import_documents", methods=["POST"])
 def import_documents():
     if "credentials" not in session:
-        return redirect(url_for("login"))
+        return redirect(url_for("login"), schema="https")
 
     credentials_dict = session["credentials"]
     credentials = Credentials.from_authorized_user_info(credentials_dict)
@@ -85,7 +87,7 @@ def login():
     # Store the state in the session so it can be used in the callback
     session["state"] = state
 
-    return redirect(authorization_url)
+    return redirect(authorization_url, schema="https")
 
 
 @app.route("/oauth2callback")
@@ -107,7 +109,7 @@ def oauth2callback():
     credentials = flow.credentials
     session["credentials"] = credentials_to_dict(credentials)
 
-    return redirect(url_for("index"))
+    return redirect(url_for("index"), schema="https")
 
 
 @app.route("/")
