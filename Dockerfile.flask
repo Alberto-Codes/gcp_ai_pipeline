@@ -6,6 +6,7 @@ WORKDIR /app
 
 # Copy the Flask backend files into the container at /app
 COPY src/flask_app.py /app
+COPY src/parameters.csv /app
 COPY requirements.txt /app
 
 # Install any needed packages specified in requirements.txt
