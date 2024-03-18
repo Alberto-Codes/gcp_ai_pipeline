@@ -16,6 +16,24 @@ Talisman(app)
 app.config.update({"PREFERRED_URL_SCHEME": "https"})
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "DEFAULT_SECRET_KEY")
 
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        if "Authorization" in request.headers:
+            token = request.headers["Authorization"]
+            token = token.split(" ")[1] if token.startswith("Bearer ") else None
+
+        if not token:
+            return jsonify({"message": "Token is missing!"}), 401
+
+        # Here you would typically check if the token is valid.
+        # This could involve decoding it and checking if it's in a list of valid tokens,
+        # checking if it's expired, etc. This depends on how you're managing tokens.
+
+        return f(*args, **kwargs)
+
+    return decorated
 
 # add ping end point
 @app.route("/ping")
@@ -76,24 +94,7 @@ def search_with_discovery_engine():
         )
 
 
-def token_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = None
-        if "Authorization" in request.headers:
-            token = request.headers["Authorization"]
-            token = token.split(" ")[1] if token.startswith("Bearer ") else None
 
-        if not token:
-            return jsonify({"message": "Token is missing!"}), 401
-
-        # Here you would typically check if the token is valid.
-        # This could involve decoding it and checking if it's in a list of valid tokens,
-        # checking if it's expired, etc. This depends on how you're managing tokens.
-
-        return f(*args, **kwargs)
-
-    return decorated
 
 
 @app.route("/import_documents", methods=["POST"])
