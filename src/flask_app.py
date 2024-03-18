@@ -19,7 +19,7 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "DEFAULT_SECRET_KEY")
 @app.route("/import_documents", methods=["POST"])
 def import_documents():
     if "credentials" not in session:
-        return redirect(url_for("login"), schema="https")
+        return redirect(url_for("login"))
 
     credentials_dict = session["credentials"]
     credentials = Credentials.from_authorized_user_info(credentials_dict)
@@ -87,7 +87,7 @@ def login():
     # Store the state in the session so it can be used in the callback
     session["state"] = state
 
-    return redirect(authorization_url, schema="https")
+    return redirect(authorization_url)
 
 
 @app.route("/oauth2callback")
@@ -104,12 +104,12 @@ def oauth2callback():
     )
 
     authorization_response = request.url
-    flow.fetch_token(authorization_response=authorization_response)
+    flow.fetch_token(authorization_response=authorization_response, _scheme="https")
 
     credentials = flow.credentials
     session["credentials"] = credentials_to_dict(credentials)
 
-    return redirect(url_for("index"), schema="https")
+    return redirect(url_for("index"))
 
 
 @app.route("/")
