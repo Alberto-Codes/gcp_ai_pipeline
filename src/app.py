@@ -13,12 +13,10 @@ from esg_score_fetch.sasb_fetch import fetch_sasb_pdf_links
 import streamlit.components.v1 as components
 
 
-
-
 def search_pdfs(company_name, api_key, search_engine_id):
     search_url = "https://www.googleapis.com/customsearch/v1"
     # Include 'ESG' and 'environmental social governance' in the query
-    query = f"\"{company_name}\" (\"environmental, social, and governance\" OR ESG OR environmental OR social OR governance OR sustainability OR \"supply chain\") AND (MSCI OR Sustainalytics OR SBTi OR CDP OR GRI OR SASB OR TCFD) AND (Assurance OR Audit OR Verification) filetype:pdf"
+    query = f'("{company_name}" OR "{company_name.lower()}") AND ("environmental, social, and governance" OR ESG OR environmental OR social OR governance OR sustainability OR "supply chain" OR MSCI OR Sustainalytics OR SBTi OR CDP OR GRI OR SASB OR TCFD OR Assurance OR Audit OR Verification) filetype:pdf'
     params = {
         "key": api_key,
         "cx": search_engine_id,
@@ -81,8 +79,6 @@ def handle_input(company_name, pdf_urls):
 
 def main():
 
-
-
     col1, col2 = st.columns(2)
     with col1:
         project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
@@ -97,8 +93,6 @@ def main():
 
         st.title("Company Name Input")
         company_name = st.text_input("Enter the company name")
-
-
 
         if st.button("Submit"):
             pdf_urls = search_pdfs(company_name, api_key, search_engine_id)
@@ -168,14 +162,13 @@ def main():
                     snippet_text = snippet.get("snippet")
                     st.markdown(f"**Snippet:** {snippet_text}", unsafe_allow_html=True)
 
-        
     with col2:
-        
+
         st.title("Chat with the AI Agent")
-        chat_agent_id = os.getenv('CHAT_AGENT_ID')
+        chat_agent_id = os.getenv("CHAT_AGENT_ID")
         project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
         components.html(
-                f"""
+            f"""
                 <link rel="stylesheet" href="https://www.gstatic.com/dialogflow-console/fast/df-messenger/prod/v1/themes/df-messenger-default.css">
                 <script src="https://www.gstatic.com/dialogflow-console/fast/df-messenger/prod/v1/df-messenger.js"></script>
                 <df-messenger
@@ -198,13 +191,12 @@ def main():
                     }}
                 </style>
                 """,
-                height=600
+            height=600,
         )
 
         # More of your Streamlit app code goes here
 
         # More of your Streamlit app code goes here
-
 
 
 if __name__ == "__main__":
