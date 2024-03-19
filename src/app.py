@@ -18,7 +18,7 @@ import streamlit.components.v1 as components
 def search_pdfs(company_name, api_key, search_engine_id):
     search_url = "https://www.googleapis.com/customsearch/v1"
     # Include 'ESG' and 'environmental social governance' in the query
-    query = f"{company_name} ESG OR environmental OR social OR governance OR sustainability (MSCI OR Sustainalytics OR SBTi OR CDP OR GRI OR SASB OR TCFD) Assurance filetype:pdf"
+    query = f"\"{company_name}\" (\"environmental, social, and governance\" OR ESG OR environmental OR social OR governance OR sustainability OR \"supply chain\") AND (MSCI OR Sustainalytics OR SBTi OR CDP OR GRI OR SASB OR TCFD) AND (Assurance OR Audit OR Verification) filetype:pdf"
     params = {
         "key": api_key,
         "cx": search_engine_id,
